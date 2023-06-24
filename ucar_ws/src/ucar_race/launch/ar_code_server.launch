@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="ucar_race" name="ar_code_server" type="ar_code_server" output="screen" >
+    
+  </node>
+</launch> 
+

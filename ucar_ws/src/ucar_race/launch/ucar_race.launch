@@ -1,0 +1,64 @@
+<launch>
+ <include file="$(find xf_mic_asr_offline)/launch/xf_mic_asr_offline.launch"/>
+ <include file="$(find ucar_nav)/launch/ucar_navigation.launch"/>
+ <include file="$(find ucar_race)/launch/ar_code_server.launch"/>
+ 
+  <!-- <node pkg="ucar_race" name="pose_init_script" type="init_pose.py" output="screen" >
+    <param name="start_point_x"    type="double" value="1.0"/>
+    <param name="start_point_y"    type="double" value="2.0"/>
+    <param name="start_point_yaw"  type="double" value="3.0"/>
+  </node> -->
+	
+   <!--<node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 /map /odom 1000"/>-->
+  <node pkg="ucar_race" name="ucar_race_node" type="ucar_race" output="screen" >
+    <param name="wake_up_words"   type="string" value="开始导航"/>
+
+    <param name="finish_voice_1_"   type="string" value="(find ucar_race)/res/jia.mp3"/>
+    <param name="start_point_x_"   type="double" value="4.991"/>
+    <param name="start_point_y_"   type="double" value="-0.230"/>
+    <param name="start_point_yaw_" type="double" value="3.133"/>
+
+    <param name="code_point_1_x_"    type="double" value="2.047"/>
+    <param name="code_point_1_y_"    type="double" value="0.9"/>
+    <param name="code_point_1_yaw_"  type="double" value="1.628"/>
+
+    <param name="code_point_2_x_"    type="double" value="2.340"/>
+    <param name="code_point_2_y_"    type="double" value="2.912"/>
+    <param name="code_point_2_yaw_"  type="double" value="1.531"/>
+    
+    <param name="code_point_3_x_"    type="double" value="1.785"/>
+    <param name="code_point_3_y_"    type="double" value="5.036"/>
+    <param name="code_point_3_yaw_"  type="double" value="-0.025"/>
+
+    <param name="code_point_4_x_"    type="double" value="0.266"/>
+    <param name="code_point_4_y_"    type="double" value="4.363"/>
+    <param name="code_point_4_yaw_"  type="double" value="-1.594"/>
+    
+    <param name="code_point_5_x_"    type="double" value="0.204"/>
+    <param name="code_point_5_y_"    type="double" value="0.711"/>
+    <param name="code_point_5_yaw_"  type="double" value="1.583"/>
+
+
+     <param name="code_point_6_x_"    type="double" value="3.934"/>
+    <param name="code_point_6_y_"    type="double" value="3.8"/>
+    <param name="code_point_6_yaw_"  type="double" value="-1.559"/>
+
+   <param name="code_point_7_x_"    type="double" value="3.962"/>
+    <param name="code_point_7_y_"    type="double" value="2.309"/>
+    <param name="code_point_7_yaw_"  type="double" value="-1.586"/>
+     
+   <param name="code_point_8_x_"    type="double" value="3.940"/>
+    <param name="code_point_8_y_"    type="double" value="0.420"/>
+    <param name="code_point_8_yaw_"  type="double" value="1.600"/>
+
+    
+    
+    <param name="end_point_1_x_"   type="double" value="4.837"/> 
+    <param name="end_point_1_y_"   type="double" value="-0.150"/>
+    <param name="end_point_1_yaw_" type="double" value="-0.017"/>
+
+   
+
+    <param name="if_show_debug"   type="bool"   value="true" />
+  </node>
+</launch> 

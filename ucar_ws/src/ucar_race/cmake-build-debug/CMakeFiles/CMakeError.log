@@ -1,0 +1,56 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_4cc3e/fast"
+/usr/bin/make -f CMakeFiles/cmTC_4cc3e.dir/build.make CMakeFiles/cmTC_4cc3e.dir/build
+make[1]: Entering directory '/home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_4cc3e.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIC    -o CMakeFiles/cmTC_4cc3e.dir/CheckSymbolExists.c.o   -c /home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_4cc3e
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4cc3e.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC     -rdynamic CMakeFiles/cmTC_4cc3e.dir/CheckSymbolExists.c.o  -o cmTC_4cc3e 
+CMakeFiles/cmTC_4cc3e.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x14): undefined reference to `pthread_create'
+CheckSymbolExists.c:(.text+0x18): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_4cc3e.dir/build.make:97: recipe for target 'cmTC_4cc3e' failed
+make[1]: *** [cmTC_4cc3e] Error 1
+make[1]: Leaving directory '/home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_4cc3e/fast' failed
+make: *** [cmTC_4cc3e/fast] Error 2
+
+File /home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_5c547/fast"
+/usr/bin/make -f CMakeFiles/cmTC_5c547.dir/build.make CMakeFiles/cmTC_5c547.dir/build
+make[1]: Entering directory '/home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_5c547.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_5c547.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_5c547
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5c547.dir/link.txt --verbose=1
+/usr/bin/cc -fPIC -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_5c547.dir/CheckFunctionExists.c.o  -o cmTC_5c547 -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_5c547.dir/build.make:97: recipe for target 'cmTC_5c547' failed
+make[1]: *** [cmTC_5c547] Error 1
+make[1]: Leaving directory '/home/ucar/ucar_ws/src/ucar_race/cmake-build-debug/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_5c547/fast' failed
+make: *** [cmTC_5c547/fast] Error 2
+
+
