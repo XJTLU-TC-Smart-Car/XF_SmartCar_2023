@@ -25,7 +25,8 @@ public:
   ros::Publisher init_pub_;
   bool has_wake_up_;
   
-  std::string detect_voice_1_, detect_voice_2_, detect_voice_3_,finish_voice_1_, finish_voice_2_, finish_voice_3_;
+  std::string detect_voice_1_, detect_voice_2_, detect_voice_3_,finish_voice_1_, finish_voice_2_, finish_voice_3_,
+detect_voice_yumi,detect_voice_huanggua,detect_voice_shuidao,detect_voice_xiaomi,detect_voice_jia;
   double code_point_6_x_,  code_point_6_y_,  code_point_6_yaw_, 
          code_point_1_x_,  code_point_1_y_,  code_point_1_yaw_, 
          code_point_2_x_,  code_point_2_y_,  code_point_2_yaw_, 
@@ -40,6 +41,7 @@ public:
   ros::ServiceClient code_detect_client_;
   ros::ServiceClient park_detect_client_;
   std::string code_info_;
+  
   int code_id_;
   // ros::ServiceClient approach_client_;
   actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> *MBC_ptr_;
@@ -64,6 +66,14 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
   pravite_nh.param("finish_voice_1",  finish_voice_1_, std::string(""));
   pravite_nh.param("finish_voice_2",  finish_voice_2_, std::string(""));
   pravite_nh.param("finish_voice_3",  finish_voice_3_, std::string(""));
+
+ pravite_nh.param("detect_voice_yumi",  detect_voice_yumi, std::string(""));
+  pravite_nh.param("detect_voice_huanggua",  detect_voice_huanggua, std::string(""));
+  pravite_nh.param("detect_voice_shuidao",  detect_voice_shuidao, std::string(""));
+  pravite_nh.param("detect_voice_xiaomi",  detect_voice_xiaomi, std::string(""));
+pravite_nh.param("detect_voice_jia",  detect_voice_jia, std::string(""));
+
+
   pravite_nh.param("start_point_x_",   start_point_x_,   0.0);
   pravite_nh.param("start_point_y_",   start_point_y_,   0.0);
   pravite_nh.param("start_point_yaw_", start_point_yaw_, 0.0);
@@ -182,6 +192,7 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
  std::thread detect_thread([&](){
    code_detect_client_ = nh_.serviceClient<std_srvs::Trigger>("/detect_server");
    std_srvs::Trigger detect_srv;
+   std::string cmd;
    while (ros::ok())
    {
     try
@@ -189,19 +200,24 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
       code_detect_client_.call(detect_srv);
       if (detect_srv.response.success == true)
       {
-        code_info_ = detect_srv.response.message;
-        ROS_INFO("plant_detected: %s", code_info_);
-        if (code_info_ == std::string("1"))
+
+        ROS_INFO("Detection success. Results: %s", detect_srv.response.message);
+        code_info_ = "1";
+        if (code_info_ == "1")
+        {
+          code_id_ = 1;
+        }
+        else if (code_info_ == "2")
         {
           code_id_ = 2;
         }
-        else if (code_info_ == std::string("2"))
+        else if (code_info_ == "3")
         {
           code_id_ = 3;
         }
-        else if (code_info_ == std::string("0"))
+	else if (code_info_ == "4")
         {
-          code_id_ = 1;
+          code_id_ = 4;
         }
         else{
           ROS_ERROR("plant detected, with invalid info.");
@@ -219,9 +235,37 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
     }
     loop_rate.sleep();
     }
-    
+     ROS_INFO("code_id_=d%",code_id_);
+
+     if (code_id_ == 1)
+     {
+         cmd = std::string("mplayer ") + detect_voice_yumi;
+
+     }
+     else if (code_id_ == 2)
+     {
+         cmd = std::string("mplayer ") + detect_voice_huanggua;
+
+     }
+     else if (code_id_ == 3)
+     {
+         cmd = std::string("mplayer ") + detect_voice_shuidao;
+
+     }
+     else if (code_id_ == 4)
+     {
+         cmd = std::string("mplayer ") + detect_voice_xiaomi;
+
+     }
+     else
+     {
+         // Do nothing
+     }
+     system(cmd.c_str());
   });
-  detect_thread.detach();
+detect_thread.detach();
+
+  
  // step_3: 导航至2点
   ROS_INFO("Go to second point.");
   code_point.target_pose.header.stamp = ros::Time::now();
@@ -244,6 +288,7 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
       // todo 完成自己的异常处理逻辑
     }
   }
+
 // step_3: 导航至3点
   ROS_INFO("Go to third point.");
   code_point.target_pose.header.stamp = ros::Time::now();
@@ -417,10 +462,15 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
         try
         {
             park_detect_client_.call(parking_srv);
-            if (parking_srv.response.success == true)
+            if (parking_srv.response.success == false)
             {
                 ROS_INFO("parking");
+//                system('mplayer',"jia.mp3");
+                std::string cmd = std::string("mplayer ") + detect_voice_jia;
+                std::cout<<cmd<<std::endl;
+                system(cmd.c_str());
                 break;
+
             }
             else
             {
@@ -433,7 +483,6 @@ UCarRace::UCarRace(): if_show_debug_(true), has_set_wake_word_(false), has_wake_
         }
         loop_rate.sleep();
     }
-
 
 
 }

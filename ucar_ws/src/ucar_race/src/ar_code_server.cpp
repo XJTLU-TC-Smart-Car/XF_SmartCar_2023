@@ -26,16 +26,7 @@ class ARCodeNode
 public:
     ARCodeNode();
     ~ARCodeNode(){}
-//
-//    double fx = 617.879008;
-//    double cx = 649.831503;
-//    double fy = 621.286929;
-//    double cy = 359.972665;
-//    double k1 = -0.284545;
-//    double k2 = 0.066787;
-//    double p1 = -0.000819;
-//    double p2 = -0.003665;
-//    double k3 = 0;
+
     double fx = 421.168623;
     double cx = 316.360115;
     double fy = 420.844814;
@@ -47,18 +38,17 @@ public:
     double k3 = 0;
 
 
-
     double marker_size = 100.0;//5.3; // 4.25; // cm
     int id_to_find = 0;
     double d_x_ = 0.40;// m
     double d_y_ = 0.0;// m
     double d_yaw = 0.0;// m
-    double xy_goal_tolerance_;
-    double yaw_goal_tolerance = 0.03;
+    double xy_goal_tolerance_ = 0.3;
+    double yaw_goal_tolerance = 0.3;
 
     double min_vel_       =  0.03;
     double angle_min_vel_ =  0.15;
-    double max_vel_       =  0.6;
+    double max_vel_       =  0.4;
     double accel_         =  0.2;
     double angle_max_vel_ =  1.5;
     double angle_accel_   =  1.5;
@@ -132,7 +122,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request  &req,
     }
     while (inputVideo.isOpened()&&ros::ok()) {
         cv::Mat frame, imageCopy, imageFlip;
-        inputVideo >> frame;//×¥È¡ÊÓÆµÖÐµÄÒ»ÕÅÕÕÆ¬
+        inputVideo >> frame;//×¥È¡ï¿½ï¿½Æµï¿½Ðµï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬
         flip(frame, frame, 1);
         imageFlip.copyTo(imageCopy);
         Rect roi(x_offset, y_offset, frame.cols - 2 * x_offset, frame.rows - 2 * y_offset);
@@ -154,8 +144,8 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request  &req,
                 if (detect_timer >= 3) {
                     ROS_INFO("detectCB: get id: %d", classIndex);
                     detect_timer = 0;
-                    res.success = true;
                     res.message = std::to_string(classIndex);
+                    res.success = true;
                     inputVideo.release();
                     return true;
                 }
@@ -185,11 +175,10 @@ bool ARCodeNode::parkingCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
     int  move_timer = 0;
     while (ros::ok()&&!pose_accept)
     {
-        std::cout<<"pose_accept incorrect.start change"<<std::endl;
         move_timer ++ ;
         bool result;
         result = getGoalPose(T_goal_in_base, Angle_goal_in_base);
-        if(result == false){//¼ì²âÊ§°Ü
+        if(result == false){//ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
             res.success = false;
             res.message = "failed.";
             return true;
@@ -197,7 +186,7 @@ bool ARCodeNode::parkingCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
 
         cout << "T_goal_in_base" << T_goal_in_base.transpose() << endl;
         cout << "Angle_goal_in_base" << Angle_goal_in_base.transpose() << endl;
-        //poseÕýÈ·£¨ÔÚÎó²î·¶Î§ÄÚ£©
+        //poseï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½î·¶Î§ï¿½Ú£ï¿½
         if (T_goal_in_base[0]     <  xy_goal_tolerance_ &&
             T_goal_in_base[1]     <  xy_goal_tolerance_ &&
             Angle_goal_in_base[2] < yaw_goal_tolerance)
@@ -244,14 +233,16 @@ bool ARCodeNode::ez_cmd_move(Eigen::Vector3d position,Eigen::Vector3d euler_angl
     vel_tmp.angular.z = 0.0;
     double lx   = abs(position[0]);
     double ly   = abs(position[1]);
-    double ld   = sqrt(lx*lx + ly*ly);
+    double ld   = std::max(sqrt(lx*lx + ly*ly) - 0.3, 0.0);
     double lyaw = abs(euler_angle[2]);
-    std::cout << "lx: " << lx << std::endl;
-    std::cout << "ly: " << ly << std::endl;
-    std::cout << "ld: " << ld << std::endl;
-    std::cout << "lyaw: " << lyaw << std::endl;
-    position[0] > 0 ? vel_tmp.linear.x = lx/ld * 0.2 : vel_tmp.linear.x = lx/ld * -0.2;
-    position[1] > 0 ? vel_tmp.linear.y = ly/ld * 0.2 : vel_tmp.linear.y = ly/ld * -0.2;
+//    std::cout << "lx: " << lx << std::endl;
+//    std::cout << "ly: " << ly << std::endl;
+//    std::cout << "ld: " << ld << std::endl;
+//    std::cout << "lyaw: " << lyaw << std::endl;
+
+
+    position[0] > 0 ? vel_tmp.linear.x = lx/ld * 0.2  : vel_tmp.linear.x = lx/ld * -0.2 ;
+    position[1] > 0 ? vel_tmp.linear.y = ly/ld * 0.2  : vel_tmp.linear.y = ly/ld * -0.2 ;
     while (ros::ok()&&!move_finish)
     {
         ros::Duration tt;
@@ -285,7 +276,7 @@ bool ARCodeNode::ez_cmd_move(Eigen::Vector3d position,Eigen::Vector3d euler_angl
     vel_tmp.angular.z = 0.0;
     r.sleep();
     while (ros::ok()&&!rotate_finish){
-        // vel_yaw ¸üÐÂ
+        // vel_yaw ï¿½ï¿½ï¿½ï¿½
         lyaw -= abs(current_odom_.twist.twist.angular.z) * delta_t;
         euler_angle[2] > 0 ? vel_tmp.angular.z =  0.5 : vel_tmp.angular.z = -0.5;
         // vel_tmp.angular.z =  0.5;
@@ -316,13 +307,15 @@ bool ARCodeNode::getGoalPose(Eigen::Vector3d & T_goal_in_base, Eigen::Vector3d &
     }
     while (inputVideo.grab()&&ros::ok()){
         cv::Mat image, imageCopy, imageFlip;
-        inputVideo >> image;//×¥È¡ÊÓÆµÖÐµÄÒ»ÕÅÕÕÆ¬
-        flip(image,imageFlip,1);//1´ú±íË®Æ½·½ÏòÐý×ª180¶È
+        inputVideo >> image;//×¥È¡ï¿½ï¿½Æµï¿½Ðµï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬
+        if (image.empty())
+            return false;
+        flip(image,imageFlip,1);//1ï¿½ï¿½ï¿½ï¿½Ë®Æ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ª180ï¿½ï¿½
         imageFlip.copyTo(imageCopy);
         cvtColor(imageCopy, imageCopy, COLOR_BGR2GRAY);
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f> > corners;
-        cv::aruco::detectMarkers(imageCopy, dictionary, corners, ids);//¼ì²â°Ð±ê
+        cv::aruco::detectMarkers(imageCopy, dictionary, corners, ids);//ï¿½ï¿½ï¿½Ð±ï¿½
         if (ids.size() <= 0){
             detect_timer++;
             if (detect_timer >= 10)
@@ -333,45 +326,31 @@ bool ARCodeNode::getGoalPose(Eigen::Vector3d & T_goal_in_base, Eigen::Vector3d &
             }
             else
             {
-                cout<<"parkingCB: Find detect Marker."<<endl;
-//                continue;
+                continue;
             }
         }
-        std::vector<cv::Vec3d> rvecs, tvecs; //Ðý×ª¾ØÕórvecsºÍÆ½ÒÆ¾ØÕótvecs
-        cv::aruco::estimatePoseSingleMarkers(corners, marker_size, cameraMatrix, distCoeffs, rvecs, tvecs);//Çó½âPose
+        std::vector<cv::Vec3d> rvecs, tvecs; //ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½rvecsï¿½ï¿½Æ½ï¿½Æ¾ï¿½ï¿½ï¿½tvecs
+        cv::aruco::estimatePoseSingleMarkers(corners, marker_size, cameraMatrix, distCoeffs, rvecs, tvecs);//ï¿½ï¿½ï¿½Pose
         int id_id = 0;
-//        bool have_right_id = true;
-//        for(int i = 0; i < ids.size(); i++)
-//        {
-//            if (ids[i] == id_to_find)
-//            {
-//                id_id = i;
-//                have_right_id = true;
-//                break;
-//            }
-//        }
-//        if(!have_right_id){
-//            continue;
-//        }
         cv::Mat R_mat;
         cv::Rodrigues(rvecs[id_id],R_mat);
         Eigen::Matrix3d matrix3;
         cv2eigen(R_mat,matrix3);
         //mark_pose_in_camera
-        Eigen::Vector3d T_mark_in_cam = Eigen::Vector3d(tvecs[id_id][0]/1000.0, tvecs[id_id][1]/1000.0, tvecs[id_id][2]/1000.0); //camera frame ÏÂ markerµÄ Æ½ÒÆ
-        Eigen::Quaterniond Q_mark_in_cam(matrix3); //camera frame ÏÂ markerµÄ Ðý×ª
+        Eigen::Vector3d T_mark_in_cam = Eigen::Vector3d(tvecs[id_id][0]/1000.0, tvecs[id_id][1]/1000.0, tvecs[id_id][2]/1000.0); //camera frame ï¿½ï¿½ markerï¿½ï¿½ Æ½ï¿½ï¿½
+        Eigen::Quaterniond Q_mark_in_cam(matrix3); //camera frame ï¿½ï¿½ markerï¿½ï¿½ ï¿½ï¿½×ª
         // tf::Quaternion quat(Q_mark_in_cam.x(),Q_mark_in_cam.y(),Q_mark_in_cam.z(),Q_mark_in_cam.w());
 
         //goal_pose_in_mark
-        Eigen::Vector3d T_goal_in_mark = Eigen::Vector3d(0.0, d_y_, d_x_); //mark frame ÏÂ goalµÄ Æ½ÒÆ
-        Eigen::Quaterniond Q_goal_in_mark =                          //mark frame ÏÂ goalµÄ Ðý×ª
+        Eigen::Vector3d T_goal_in_mark = Eigen::Vector3d(0.0, d_y_, d_x_); //mark frame ï¿½ï¿½ goalï¿½ï¿½ Æ½ï¿½ï¿½
+        Eigen::Quaterniond Q_goal_in_mark =                          //mark frame ï¿½ï¿½ goalï¿½ï¿½ ï¿½ï¿½×ª
                 Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ()) *
                 Eigen::AngleAxisd( 3.14159/2, Eigen::Vector3d::UnitY()) *
                 Eigen::AngleAxisd(-3.14159/2, Eigen::Vector3d::UnitX());
 
         //camera_pose_in_base
-        Eigen::Vector3d    T_camera_in_base = Eigen::Vector3d(0.15, 0.0, 0.15); //mark frame ÏÂ goalµÄ Æ½ÒÆ
-        Eigen::Quaterniond Q_camera_in_base =                          //mark frame ÏÂ goalµÄ Ðý×ª
+        Eigen::Vector3d    T_camera_in_base = Eigen::Vector3d(0.15, 0.0, 0.15); //mark frame ï¿½ï¿½ goalï¿½ï¿½ Æ½ï¿½ï¿½
+        Eigen::Quaterniond Q_camera_in_base =                          //mark frame ï¿½ï¿½ goalï¿½ï¿½ ï¿½ï¿½×ª
                 Eigen::AngleAxisd(-3.14159*90.0/180.0, Eigen::Vector3d::UnitZ()) *
                 Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitY()) *
                 Eigen::AngleAxisd(-3.14159*110.0/180.0, Eigen::Vector3d::UnitX());
@@ -382,8 +361,8 @@ bool ARCodeNode::getGoalPose(Eigen::Vector3d & T_goal_in_base, Eigen::Vector3d &
         T_goal_in_base = Q_camera_in_base * T_goal_in_cam  + T_camera_in_base;           // position
         Eigen::Quaterniond Q_goal_in_base = Q_camera_in_base * Q_mark_in_cam * Q_goal_in_mark;
         tf::Quaternion quat_goal_in_base(Q_goal_in_base.x(),Q_goal_in_base.y(),Q_goal_in_base.z(),Q_goal_in_base.w());
-        double roll, pitch, yaw;//¶¨Òå´æ´¢r\p\yµÄÈÝÆ÷
-        tf::Matrix3x3(quat_goal_in_base).getRPY(roll, pitch, yaw);//½øÐÐ×ª»»
+        double roll, pitch, yaw;//ï¿½ï¿½ï¿½ï¿½æ´¢r\p\yï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        tf::Matrix3x3(quat_goal_in_base).getRPY(roll, pitch, yaw);//ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½
         std::cout << "Angle_goal_in_base(roll, pitch, yaw): ("<< roll/3.14159*180 <<", " << pitch/3.14159*180 <<", "<< yaw/3.14159*180 <<") "<< std::endl;
         Angle_goal_in_base << roll,pitch,yaw;
         break;

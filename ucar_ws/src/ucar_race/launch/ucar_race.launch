@@ -13,7 +13,13 @@
   <node pkg="ucar_race" name="ucar_race_node" type="ucar_race" output="screen" >
     <param name="wake_up_words"   type="string" value="开始导航"/>
 
-    <param name="finish_voice_1_"   type="string" value="(find ucar_race)/res/jia.mp3"/>
+    <param name="detect_voice_huanggua"   type="string" value="(find ucar_race)/res/huanggua.mp3"/>
+<param name="detect_voice_yumi"   type="string" value="(find ucar_race)/res/yumi.mp3"/>
+<param name="detect_voice_shuidao"   type="string" value="(find ucar_race)/res/shuidao.mp3"/>
+<param name="detect_voice_xiaomi"   type="string" value="(find ucar_race)/res/xiaomi.mp3"/>
+<param name="detect_voice_jia"   type="string" value="(find ucar_race)/res/jia.mp3"/>
+
+
     <param name="start_point_x_"   type="double" value="4.991"/>
     <param name="start_point_y_"   type="double" value="-0.230"/>
     <param name="start_point_yaw_" type="double" value="3.133"/>

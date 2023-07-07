@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="ucar (547221b9-e51b-42d5-b666-2973dfbe8ae9)" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+    <option name="confirmBeforeUploading" value="false" />
+    <serverData>
+      <paths name="Knight (d49c4ffd-235d-47da-a55a-d410aad496eb)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="ucar (547221b9-e51b-42d5-b666-2973dfbe8ae9)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ucar/ucar_ws" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="ucar (b518fc77-54f1-455f-bbba-18345ca22b2a)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ucar/ucar_ws" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="zR (e7fbeba4-8d73-409a-898b-218d393f5773)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>

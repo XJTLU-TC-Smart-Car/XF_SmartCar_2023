@@ -14,14 +14,23 @@
 
   <include file="$(find ucar_nav)/launch/config/amcl/amcl_omni.launch" > </include>
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
-    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
-    <rosparam file="$(find ucar_nav)/launch/config/move_base/costmap_common_params.yaml" command="load" ns="global_costmap" />
-    <rosparam file="$(find ucar_nav)/launch/config/move_base/costmap_common_params.yaml" command="load" ns="local_costmap" />
-    <rosparam file="$(find ucar_nav)/launch/config/move_base/global_planner_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/move_base/dwa_local_planner_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/move_base/local_costmap_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/move_base/global_costmap_params.yaml" command="load" />
+    
+    <rosparam file="$(find ucar_nav)/launch/config/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find ucar_nav)/launch/config/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find ucar_nav)/launch/config/param/teb_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/param/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/param/global_planner_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/param/costmap_conversion_params.yaml" command="load" />
+    
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+    <param name="planner_frequency" value="1.0" />
+    <param name="planner_patience" value="5.0" />
+    <!--param name="use_dijkstra" value="false" /-->
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+    <param name="controller_frequency" value="10.0" />
+    <param name="controller_patience" value="10.0" />
+    <param name="clearing_rotation_allowed" value="true" />
   </node>
 
   <!-- rosparam command="load" file="$(find ucar_nav)/launch/config/move_base/my_navigation.yaml"/ -->
