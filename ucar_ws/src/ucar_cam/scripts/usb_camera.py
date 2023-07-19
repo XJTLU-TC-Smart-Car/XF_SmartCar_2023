@@ -4,8 +4,8 @@ import time
 import rospy
 
 cap = cv2.VideoCapture("/dev/ucar_video")
-weight=320
-height=240
+weight=640
+height=480
 cap.set(3, weight)  # 设置分辨率 3和4 分别代表摄像头的属性值。你可以使用函数 cap.get(propId) 来获得视频的一些参数信息。这里propId 可以是 0 到 18 之间的任何整数。每一个数代表视频的一个属性,见表其中的一些值可以使用cap.set(propId,value) 来修改,value 就是你想要设置成的新值。例如,我可以使用 cap.get(3) 和 cap.get(4) 来查看每一帧的宽和高。默认情况下得到的值是 640X480。但是我可以使用 ret=cap.set(3,320)和 ret=cap.set(4,240) 来把宽和高改成 320X240。
 cap.set(4, height)
 codec = cv2.VideoWriter.fourcc('M', 'J', 'P', 'G')

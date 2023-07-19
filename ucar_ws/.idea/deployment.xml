@@ -27,7 +27,7 @@
       <paths name="zR (e7fbeba4-8d73-409a-898b-218d393f5773)">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/tmp/tmp.dEb3XCpEYm" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>

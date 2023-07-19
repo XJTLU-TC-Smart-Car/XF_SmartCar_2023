@@ -16,8 +16,8 @@ obstacle_layer:
   enabled: true
   combination_method: 1
   track_unknown_space: true
-  obstacle_range: 5.0
-  raytrace_range: 5.0
+  obstacle_range: 3.0
+  raytrace_range: 3.0
   observation_sources: laser_scan_sensor
   laser_scan_sensor: {
     sensor_frame: laser_frame,
@@ -30,9 +30,9 @@ obstacle_layer:
  
 inflation_layer:
   enabled: true
-  cost_scaling_factor: 20.0
+  cost_scaling_factor: 10.0
 # inflation_radius: 0.2
-  inflation_radius: 0.11
+  inflation_radius: 0.2
 #0.15
  
 static_layer:

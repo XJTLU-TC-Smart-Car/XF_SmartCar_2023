@@ -4,7 +4,7 @@
    
   <include file="$(find ucar_controller)/launch/base_driver.launch" > </include>
 
-  <include file="$(find ydlidar)/launch/ydlidar.launch" > </include>
+  <include file="$(find ydlidar_ros_driver)/launch/ydlidar.launch" > </include>
 
   <node name="map_server" pkg="map_server" type="map_server" args="$(find ucar_nav)/maps/map.yaml" output="screen">
    <param name="frame_id" value="map" />
@@ -15,13 +15,13 @@
   <include file="$(find ucar_nav)/launch/config/amcl/amcl_omni.launch" > </include>
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
     
-    <rosparam file="$(find ucar_nav)/launch/config/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
-    <rosparam file="$(find ucar_nav)/launch/config/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
-    <rosparam file="$(find ucar_nav)/launch/config/param/teb_local_planner_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/param/local_costmap_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/param/global_costmap_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/param/global_planner_params.yaml" command="load" />
-    <rosparam file="$(find ucar_nav)/launch/config/param/costmap_conversion_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/teb_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/global_planner_params.yaml" command="load" />
+    <rosparam file="$(find ucar_nav)/launch/config/move_base/costmap_converter.yaml" command="load" />
     
     <param name="base_global_planner" value="global_planner/GlobalPlanner" />
     <param name="planner_frequency" value="1.0" />

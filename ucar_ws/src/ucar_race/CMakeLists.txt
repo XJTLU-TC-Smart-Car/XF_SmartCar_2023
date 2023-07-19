@@ -46,6 +46,17 @@ link_directories(/usr/lib/aarch64-linux-gnu/tegra)
 # # ucar_race
 add_executable(ucar_race src/ucar_race.cpp)
 target_link_libraries(ucar_race ${catkin_LIBRARIES})#
+add_executable(wav_node src/wav.cpp)
+target_link_libraries(wav_node ${catkin_LIBRARIES})
+
+add_executable(move_node src/move.cpp)
+target_link_libraries(move_node ${catkin_LIBRARIES})
+
+add_executable(daohang_node src/daohang.cpp)
+target_link_libraries(daohang_node ${catkin_LIBRARIES})
+
+add_executable(music_node src/music.cpp)
+target_link_libraries(music_node ${catkin_LIBRARIES})
 
 
 # # approach_server
