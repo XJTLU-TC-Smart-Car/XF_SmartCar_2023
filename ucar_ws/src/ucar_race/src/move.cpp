@@ -31,14 +31,16 @@ public:
 
         // Initialize the locations.
         locations = {
-                {{4.991, -0.230, 0.99999077, 0.00429631}},
-		{{0.068, 4.075,  0.691,      0.723}},
-                {{0.049, 0.855,  -0.791,     0.611}},
-		{{1.833, 4.260,  0.663,      0.749}},
-		{{1.581, -0.330, 1.000,      -0.005}},
-                {{4.035, 3.847,  0.708,      0.707}},
-                {{3.918, 2.238,  -0.701,      0.713}},
-                {{4.991, -0.230, -0.010,     1.000}}
+                {{0.068, 4.075, 0.691, 0.723}},
+                {{0.049, 0.855, -0.791, 0.611}},
+                {{1.833, 4.260, 0.663, 0.749}},
+                {{1.658, -0.201, 1.000, 0.000}},
+                {{3.944, 0.113, 0.708, 0.707}},
+                {{3.943, 1.950, 0.711, 0.703}},
+                {{3.901, 3.714, 0.696, 0.718}},
+                {{3.943, 1.950, -0.711, 0.703}},
+                {{3.943, 0.113, -0.708, 0.707}},
+                {{4.991, -0.230, -0.010, 1.000}}
         };
 
         qr_sub = nh.subscribe("/qr_res", 1, &UcarNav::qrCallback, this);
@@ -56,16 +58,16 @@ public:
 
 
     void run() {
-        ROS_INFO("wait for wake up.");
+        ROS_WARN("wait for wake up.");
         ros::Rate loop_rate(10);
         while (ros::ok() && !has_wake_up_) {
             ros::spinOnce();
             loop_rate.sleep();
         }
-        ROS_INFO("Start the game!");
+        ROS_WARN("Start the game!");
 
         while (!ac->waitForServer(ros::Duration(5.0))) {
-            ROS_INFO("Waiting for the move_base action server to come up");
+            ROS_WARN("Waiting for the move_base action server to come up");
         }
 
         // Loop over all the goals
@@ -104,11 +106,16 @@ private:
     std::string wake_up_words_;
     std::string cmd;
     std::shared_ptr <std::thread> detect_thread;
-    std::vector <std::string> detection_results_final_plant;
     struct DetectionResult {
         int classIndex;
         float average_confidence;
     };
+    std::vector <std::string> detection_results_final_plant;
+    std::vector <std::string> detection_results_final_fruit;
+    std::vector <DetectionResult> detection_results_plant;
+    std::vector <DetectionResult> detection_results_fruit;
+    std::vector <DetectionResult> detection_results_tmp;
+
 
     bool has_set_wake_word_;
     bool has_wake_up_;
@@ -178,7 +185,7 @@ private:
             }
             loop_rate.sleep();
         }
-        ROS_INFO("set wake up words as: %s", wake_up_words_.c_str());
+        ROS_WARN("set wake up words as: %s", wake_up_words_.c_str());
     }
 
     void wakeUpCallback(const std_msgs::Int32::ConstPtr &msg) {
@@ -208,18 +215,18 @@ private:
         mbGoal.target_pose.pose.orientation.z = goal[2];
         mbGoal.target_pose.pose.orientation.w = goal[3];
 
-        ROS_INFO("Sending goal");
+        ROS_WARN("Sending goal");
         ac->sendGoal(mbGoal);
 
         ac->waitForResult();
 
         if (ac->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-            ROS_INFO("Hooray, the base moved to the goal");
+            ROS_WARN("Hooray, the base moved to the goal");
             arrive = 1;
-            ROS_INFO("arrive value is now: %d", arrive);
+            ROS_WARN("arrive value is now: %d", arrive);
 
         } else {
-            ROS_INFO("The base failed to move for some reason");
+            ROS_WARN("The base failed to move for some reason");
             arrive = 0;
         }
     }
@@ -270,7 +277,7 @@ private:
 
     // 定义结构体
 
-    std::vector <DetectionResult> detection_results_plant;
+
 
     void startDetectThread() {
         stop_thread_flag = false; // 重置标志
@@ -281,10 +288,10 @@ private:
                 std_srvs::Trigger detect_srv;
                 if (ros::ok()) {
                     try {
-                        ROS_INFO("Calling plant");
+                        ROS_WARN("Calling plant");
                         code_detect_client_.call(detect_srv);
                         if (detect_srv.response.success == true) {
-                            ROS_INFO("Detection success. Results: %s", detect_srv.response.message.c_str());
+                            ROS_WARN("Detection success. Results: %s", detect_srv.response.message.c_str());
                             std::stringstream ss(detect_srv.response.message);
                             std::string token;
                             std::getline(ss, token, ',');
@@ -296,7 +303,7 @@ private:
                             DetectionResult result;
                             result.classIndex = classIndex;
                             result.average_confidence = average_confidence;
-                            detection_results_plant.push_back(result);
+                            detection_results_tmp.push_back(result);
 
                             break;
                         } else {
@@ -341,12 +348,19 @@ private:
         return true;
     }
 
-    void processAndFinalizeDetectionResults(std::vector <DetectionResult> &detection_results_plant,
-                                            std::vector <std::string> &detection_results_final_plant) {
+    void processAndFinalizeDetectionResults(bool isfruit, std::vector <DetectionResult> &detection_results,
+                                            std::vector <std::string> &detection_results_final) {
         // 第一步
         bool allPresent = true;
-        for (int i = 1; i <= 4; i++) {
-            if (!isClassIndexPresent(i, detection_results_plant)) {
+        int classbegin = 5;
+        int classend = 16;
+        if (!isfruit) {
+            classbegin = 1;
+            classend = 4;
+        }
+
+        for (int i = classbegin; i <= classend; i++) {
+            if (!isClassIndexPresent(i, detection_results)) {
                 allPresent = false;
                 break;
             }
@@ -355,7 +369,7 @@ private:
         if (!allPresent) {
             // 第二步
             std::map<int, int> classIndexCounts;
-            for (const auto &result: detection_results_plant) {
+            for (const auto &result: detection_results) {
                 classIndexCounts[result.classIndex]++;
             }
 
@@ -366,7 +380,7 @@ private:
                     int duplicateClassIndex = pair.first;
                     // 找到average_confidence较小的那个结果
                     DetectionResult *minConfidenceResult = nullptr;
-                    for (auto &result: detection_results_plant) {
+                    for (auto &result: detection_results) {
                         if (result.classIndex == duplicateClassIndex) {
                             if (minConfidenceResult == nullptr ||
                                 result.average_confidence < minConfidenceResult->average_confidence) {
@@ -375,9 +389,9 @@ private:
                         }
                     }
                     // 找到一个没有出现的classIndex
-                    int newClassIndex = 1;
-                    for (; newClassIndex <= 4; newClassIndex++) {
-                        if (!isClassIndexPresent(newClassIndex, detection_results_plant)) {
+                    int newClassIndex = classbegin;
+                    for (; newClassIndex <= classend; newClassIndex++) {
+                        if (!isClassIndexPresent(newClassIndex, detection_results)) {
                             break;
                         }
                     }
@@ -388,18 +402,42 @@ private:
         }
 
         // 第三步
-        for (const auto &result: detection_results_plant) {
-            detection_results_final_plant.push_back(std::to_string(result.classIndex));
+        for (const auto &result: detection_results) {
+            detection_results_final.push_back(std::to_string(result.classIndex));
         }
     }
 
+    void dealVector() {
+        ROS_WARN("Begin processing detection results.");
+        // 检查tmp是否有足够的元素
+        if (detection_results_tmp.size() < 4) {
+            std::cout << "tmp vector does not have enough elements." << std::endl;
+            return;
+        }
+        // 将tmp的前四个元素移动到plant
+        detection_results_plant.insert(detection_results_plant.end(), detection_results_tmp.begin(),
+                                       detection_results_tmp.begin() + 4);
+
+        // 将剩下的元素移动到fruit
+        if (detection_results_tmp.size() > 4) {
+            detection_results_fruit.insert(detection_results_fruit.end(), detection_results_tmp.begin() + 4,
+                                           detection_results_tmp.end());
+        }
+
+        // 清空tmp
+        detection_results_tmp.clear();
+        processAndFinalizeDetectionResults(false,detection_results_plant, detection_results_final_plant);
+        processAndFinalizeDetectionResults(true,detection_results_fruit, detection_results_final_fruit);
+        ROS_WARN("Finish processing detection results.");
+    }
 
     void playSoundsBasedOnResults() {
         // 检查是否有检测结果
-        processAndFinalizeDetectionResults(detection_results_plant, detection_results_final_plant);
 
+        dealVector();
+        std::cout<<detection_results_final_plant.size()<<std::endl;
         if (detection_results_final_plant.empty()) {
-            ROS_INFO("No detection results to play sounds for.");
+            ROS_WARN("No detection results to play sounds for.");
             return;
         }
         std::vector <std::string> sound_files_to_play;
@@ -407,6 +445,7 @@ private:
         // 对于每个检测结果，播放相应的音频
         for (size_t i = 0; i < detection_results_final_plant.size(); ++i) {
             // 找到与检测结果对应的音频文件
+            std::cout<<detection_results_final_plant[i]<<std::endl;
             std::string sound_file = getSoundFileForResult(detection_results_final_plant[i]);
             if (!sound_file.empty()) {
                 // 播放位置的音频文件
@@ -420,12 +459,12 @@ private:
 
             } else {
                 // 如果没有找到音频文件，打印一条消息
-                ROS_INFO("No sound file associated with result!");
+                ROS_WARN("No sound file associated with result!");
             }
 
 
         }
-        
+
         for (const auto &file: sorted_sound_files_to_play) {
             playSound(file);
             ros::Duration(3.0).sleep(); // 延迟3秒，你可以根据你的音频文件的长度来调整这个值
