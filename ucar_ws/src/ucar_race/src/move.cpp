@@ -31,13 +31,16 @@ public:
 
         // Initialize the locations.
         locations = {
-                {{0.068, 4.075,  0.691,  0.723}},
-                {{0.049, 0.855,  -0.791, 0.611}},
-                {{1.833, 4.260,  0.663,  0.749}},
-                {{1.658, -0.201, 1.000,  0.000}},
+                {{0.068, 4.075,  0.691,  0.723}},//B
+                {{0.049, 0.855,  -0.791, 0.611}},//C
+                {{1.833, 4.260,  0.663,  0.749}},//D
+                {{2.070, -0.171, 1.000,  0.000}},//E
                 {{3.944, 0.113,  0.708,  0.707}},
-                {{3.943, 1.950,  0.711,  0.703}},
-                {{3.901, 3.714,  0.696,  0.718}},
+                {{3.912, 3.322, 1.000, 0.025}},//F1
+                {{3.912, 3.322, 0.916, 0.402}},
+                {{3.912, 3.322, 0.284, 0.959}},//F2
+                {{3.253, 2.102, -0.686, 0.728}},//F3
+                {{4.651, 1.963, -0.698, 0.716}},//F4
                 {{3.943, 1.950,  -0.711, 0.703}},
                 {{3.943, 0.113,  -0.708, 0.707}},
                 {{4.991, -0.230, -0.010, 1.000}}
@@ -74,17 +77,8 @@ public:
         for (size_t i = 0; i < locations.size(); ++i) {
             moveToGoal(locations[i]);
 
-            if (i == 0) { // 到达第一个目标点
+            if (i < 10 && i != 4 && i!= 6) {
                 startDetectThread(); // 启动检测线程
-            } else if (i == 1) { // 到达第二个目标点
-                startDetectThread(); // 启动检测线程
-                rotateInPlace();    // 旋转一周
-            } else if (i == 2) { // 到达第三个目标点
-                startDetectThread();
-                rotateInPlace();    // 旋转一周
-            } else if (i == 3) { // 到达第二个目标点
-                startDetectThread(); // 启动检测线程
-                rotateInPlace();    // 旋转一周
             }
 
             if (arrive == 0) { // If not arrive, break the loop
@@ -320,7 +314,7 @@ private:
                         }
                     }
                     catch (const std::exception &e) {
-                        std::cerr << "Call plant failed, error_info: " << e.what() << '\n';
+                        std::cerr << "Call failed, error_info: " << e.what() << '\n';
                     }
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 让出一些CPU时间
@@ -348,16 +342,64 @@ private:
         return true;
     }
 
-    void processAndFinalizeDetectionResults(bool isfruit, std::vector <DetectionResult> &detection_results,
-                                            std::vector<int> &detection_results_final) {
+    void processResults_Fruit(std::vector <DetectionResult> &detection_results,
+                              std::vector<int> &detection_results_final) {
+        // 第一步
+        for (auto &result: detection_results) {
+            if (result.classIndex == 1) {
+                result.classIndex = 5;
+                result.average_confidence = 0;
+            } else if (result.classIndex == 2) {
+                result.classIndex = 9;
+                result.average_confidence = 0;
+            }
+        }
+
+        // 第二步
+        std::map<int, int> classIndexCounts;
+        for (const auto &result: detection_results) {
+            classIndexCounts[result.classIndex]++;
+        }
+
+        for (auto &pair: classIndexCounts) {
+
+            if (pair.second == 2) {
+                // 找到重复的classIndex
+                int duplicateClassIndex = pair.first;
+                // 找到average_confidence较小的那个结果
+                DetectionResult *minConfidenceResult = nullptr;
+                for (auto &result: detection_results) {
+                    if (result.classIndex == duplicateClassIndex) {
+                        if (minConfidenceResult == nullptr ||
+                            result.average_confidence < minConfidenceResult->average_confidence) {
+                            minConfidenceResult = &result;
+                        }
+                    }
+                }
+                // 找到一个没有出现的classIndex
+                int newClassIndex = 1;
+                for (; newClassIndex <= 9; newClassIndex++) {
+                    if (!isClassIndexPresent(newClassIndex, detection_results)) {
+                        break;
+                    }
+                }
+                // 修改average_confidence较小的那个结果的classIndex
+                minConfidenceResult->classIndex = newClassIndex;
+            }
+        }
+
+        // 第三步
+        for (const auto &result: detection_results) {
+            detection_results_final.push_back(result.classIndex);
+        }
+    }
+
+    void processResults_Plant(std::vector <DetectionResult> &detection_results,
+                              std::vector<int> &detection_results_final) {
         // 第一步
         bool allPresent = true;
-        int classbegin = 5;
-        int classend = 16;
-        if (!isfruit) {
-            classbegin = 1;
-            classend = 4;
-        }
+        int classbegin = 1;
+        int classend = 4;
 
         for (int i = classbegin; i <= classend; i++) {
             if (!isClassIndexPresent(i, detection_results)) {
@@ -413,7 +455,6 @@ private:
             return;
         }
         // 将tmp的前四个元素移动到plant
-        ROS_WARN("tmp Number: %d", detection_results_tmp.size());
         detection_results_plant.insert(detection_results_plant.end(), detection_results_tmp.begin(),
                                        detection_results_tmp.begin() + 4);
 
@@ -425,14 +466,32 @@ private:
 
         // 清空tmp
         detection_results_tmp.clear();
+        processResults_Plant(detection_results_plant, detection_results_final_plant);
+        processResults_Fruit(detection_results_fruit, detection_results_final_fruit);
 
-        ROS_WARN("fruit Number: %d", detection_results_fruit.size());
-        ROS_WARN("plant Number: %d", detection_results_plant.size());
-        processAndFinalizeDetectionResults(false, detection_results_plant, detection_results_final_plant);
-//        processAndFinalizeDetectionResults(true,detection_results_fruit, detection_results_final_fruit);
-//        ROS_WARN("fruit final Number: %d", detection_results_final_fruit.size());
-        ROS_WARN("plant final Number: %d", detection_results_final_plant.size());
+    }
 
+    void playFruitSound(int maxfruit_index, int maxfruit) {
+        playSound("/home/ucar/ucar_ws/src/ucar_race/res/F.wav"); //单独播报F区
+        ROS_WARN("ID: %d Num: %d", maxfruit_index, maxfruit);
+        ros::Duration(3.0).sleep();
+        // 播报最多的水果种类
+        if (fruit_sound_files.find(maxfruit_index) != fruit_sound_files.end()) {
+            std::string fruit_sound = fruit_sound_files[maxfruit_index];
+            playSound(fruit_sound);
+            ros::Duration(3.0).sleep();
+        } else {
+            ROS_WARN("No sound file for fruit index: %d", maxfruit_index);
+        }
+
+        // 播报数量
+        if (quantity_sound_files.find(maxfruit) != quantity_sound_files.end()) {
+            std::string quantity_sound = quantity_sound_files[maxfruit];
+            playSound(quantity_sound);
+            ros::Duration(3.0).sleep();
+        } else {
+            ROS_WARN("No sound file for quantity: %d", maxfruit);
+        }
     }
 
     void playSoundsBasedOnResults() {
@@ -475,12 +534,15 @@ private:
         }
         int maxfruit_index = 0, maxfruit = 0;
         for (int i = 1; i <= 3; i++) {
-            if (fruit_num[i] > maxfruit)
+            if (fruit_num[i] > maxfruit) {
                 maxfruit = fruit_num[i];
-            maxfruit_index = i;
+                maxfruit_index = i;
+            }
         }
         ROS_WARN("maxfruit_index: %d,maxfruit_num: %d", maxfruit_index, maxfruit);
-
+        playFruitSound(maxfruit_index, maxfruit);
+        ROS_WARN("Finish play Fruit sound");
+        ROS_WARN("Finish ALL");
     }
 
 
@@ -492,10 +554,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle n;
     ros::Publisher pub_wake_up = n.advertise<std_msgs::String>("/wake_up", 1000);
     UcarNav ucarNav;
-
     ucarNav.run();
-
-
     ros::spin();
 
     return 0;
