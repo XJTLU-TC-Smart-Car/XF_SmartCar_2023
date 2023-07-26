@@ -31,15 +31,15 @@ public:
 
         // Initialize the locations.
         locations = {
-                {{0.068, 4.075, 0.691, 0.723}},
-                {{0.049, 0.855, -0.791, 0.611}},
-                {{1.833, 4.260, 0.663, 0.749}},
-                {{1.658, -0.201, 1.000, 0.000}},
-                {{3.944, 0.113, 0.708, 0.707}},
-                {{3.943, 1.950, 0.711, 0.703}},
-                {{3.901, 3.714, 0.696, 0.718}},
-                {{3.943, 1.950, -0.711, 0.703}},
-                {{3.943, 0.113, -0.708, 0.707}},
+                {{0.068, 4.075,  0.691,  0.723}},
+                {{0.049, 0.855,  -0.791, 0.611}},
+                {{1.833, 4.260,  0.663,  0.749}},
+                {{1.658, -0.201, 1.000,  0.000}},
+                {{3.944, 0.113,  0.708,  0.707}},
+                {{3.943, 1.950,  0.711,  0.703}},
+                {{3.901, 3.714,  0.696,  0.718}},
+                {{3.943, 1.950,  -0.711, 0.703}},
+                {{3.943, 0.113,  -0.708, 0.707}},
                 {{4.991, -0.230, -0.010, 1.000}}
         };
 
@@ -75,7 +75,7 @@ public:
             moveToGoal(locations[i]);
 
             if (i == 0) { // 到达第一个目标点
-                //startDetectThread(); // 启动检测线程
+                startDetectThread(); // 启动检测线程
             } else if (i == 1) { // 到达第二个目标点
                 startDetectThread(); // 启动检测线程
                 rotateInPlace();    // 旋转一周
@@ -83,9 +83,6 @@ public:
                 startDetectThread();
                 rotateInPlace();    // 旋转一周
             } else if (i == 3) { // 到达第二个目标点
-                startDetectThread(); // 启动检测线程
-                rotateInPlace();    // 旋转一周
-            } else if (i == 4) { // 到达第二个目标点
                 startDetectThread(); // 启动检测线程
                 rotateInPlace();    // 旋转一周
             }
@@ -110,12 +107,12 @@ private:
         int classIndex;
         float average_confidence;
     };
-    std::vector <std::string> detection_results_final_plant;
-    std::vector <std::string> detection_results_final_fruit;
+    std::vector<int> detection_results_final_plant;
+    std::vector<int> detection_results_final_fruit;
     std::vector <DetectionResult> detection_results_plant;
     std::vector <DetectionResult> detection_results_fruit;
     std::vector <DetectionResult> detection_results_tmp;
-
+    int fruit_num[4] = {0, 0, 0, 0};
 
     bool has_set_wake_word_;
     bool has_wake_up_;
@@ -135,11 +132,11 @@ private:
     tf::TransformListener listener;
     std::atomic<bool> stop_thread_flag;
 
-    std::map <std::string, std::string> result_to_sound_file_map = {
-            {"1", "/home/ucar/ucar_ws/src/ucar_race/res/yumi.wav"},
-            {"2", "/home/ucar/ucar_ws/src/ucar_race/res/huanggua.wav"},
-            {"3", "/home/ucar/ucar_ws/src/ucar_race/res/shuidao.wav"},
-            {"4", "/home/ucar/ucar_ws/src/ucar_race/res/xiaomai.wav"}
+    std::map<int, std::string> result_to_sound_file_map = {
+            {1, "/home/ucar/ucar_ws/src/ucar_race/res/yumi.wav"},
+            {2, "/home/ucar/ucar_ws/src/ucar_race/res/huanggua.wav"},
+            {3, "/home/ucar/ucar_ws/src/ucar_race/res/shuidao.wav"},
+            {4, "/home/ucar/ucar_ws/src/ucar_race/res/xiaomai.wav"}
     };
 
     std::vector <std::string> location_sounds = {
@@ -148,11 +145,27 @@ private:
             "/home/ucar/ucar_ws/src/ucar_race/res/D.wav",
             "/home/ucar/ucar_ws/src/ucar_race/res/E.wav"
     };
+    int fruit_count[17] = {0, 0, 0, 0, 0, 2, 2, 1, 1, 1, 3, 2, 2, 1, 1, 1, 1};
+    std::map<int, std::string> fruit_sound_files = {
+            {1, "/home/ucar/ucar_ws/src/ucar_race/res/yumi.wav"},
+            {2, "/home/ucar/ucar_ws/src/ucar_race/res/huanggua.wav"},
+            {3, "/home/ucar/ucar_ws/src/ucar_race/res/xigua.wav"}
+    };
 
+    std::map<int, std::string> quantity_sound_files = {
+            {1, "/home/ucar/ucar_ws/src/ucar_race/res/1ge.wav"},
+            {2, "/home/ucar/ucar_ws/src/ucar_race/res/2ge.wav"},
+            {3, "/home/ucar/ucar_ws/src/ucar_race/res/3ge.wav"},
+            {4, "/home/ucar/ucar_ws/src/ucar_race/res/4ge.wav"},
+            {5, "/home/ucar/ucar_ws/src/ucar_race/res/5ge.wav"},
+            {6, "/home/ucar/ucar_ws/src/ucar_race/res/6ge.wav"}
+    };
 
-    std::string getSoundFileForResult(const std::string &result) {
+    std::string getSoundFileForResult(int result) {
         // 检查结果是否在 map 中
+        ROS_INFO("result: %d", result);
         if (result_to_sound_file_map.find(result) != result_to_sound_file_map.end()) {
+            ROS_INFO("in result: %d", result);
             // 如果在 map 中，返回对应的音频文件路径
             return result_to_sound_file_map[result];
         } else {
@@ -276,9 +289,6 @@ private:
 
 
     // 定义结构体
-
-
-
     void startDetectThread() {
         stop_thread_flag = false; // 重置标志
         detect_thread = std::make_shared<std::thread>([&]() {
@@ -288,7 +298,6 @@ private:
                 std_srvs::Trigger detect_srv;
                 if (ros::ok()) {
                     try {
-                        ROS_WARN("Calling plant");
                         code_detect_client_.call(detect_srv);
                         if (detect_srv.response.success == true) {
                             ROS_WARN("Detection success. Results: %s", detect_srv.response.message.c_str());
@@ -320,17 +329,8 @@ private:
         detect_thread->detach();
     }
 
-
-    void stopDetectThread() {
-        if (detect_thread) {
-            stop_thread_flag = true; // 设置标志，使线程的函数返回
-            detect_thread->join(); // 等待线程结束
-            detect_thread.reset();
-        }
-    }
-
-
     void playSound(const std::string &sound_file) {
+        ROS_WARN("Playing sound: %s", sound_file.c_str());
         sound_play::SoundRequest sound;
         sound.sound = sound_play::SoundRequest::PLAY_FILE;
         sound.arg = sound_file;
@@ -340,8 +340,8 @@ private:
         sound_pub.publish(sound);
     }
 
-    bool isClassIndexPresent(int i, std::vector <DetectionResult> &detection_results_plant) {
-        auto it = std::find_if(detection_results_plant.begin(), detection_results_plant.end(),
+    bool isClassIndexPresent(int i, std::vector <DetectionResult> &detection_results) {
+        auto it = std::find_if(detection_results.begin(), detection_results.end(),
                                [i](const DetectionResult &dr) { return dr.classIndex == i; });
         if (it == detection_results_plant.end())
             return false;
@@ -349,7 +349,7 @@ private:
     }
 
     void processAndFinalizeDetectionResults(bool isfruit, std::vector <DetectionResult> &detection_results,
-                                            std::vector <std::string> &detection_results_final) {
+                                            std::vector<int> &detection_results_final) {
         // 第一步
         bool allPresent = true;
         int classbegin = 5;
@@ -400,21 +400,20 @@ private:
                 }
             }
         }
-
         // 第三步
         for (const auto &result: detection_results) {
-            detection_results_final.push_back(std::to_string(result.classIndex));
+            detection_results_final.push_back(result.classIndex);
         }
     }
 
     void dealVector() {
-        ROS_WARN("Begin processing detection results.");
         // 检查tmp是否有足够的元素
         if (detection_results_tmp.size() < 4) {
             std::cout << "tmp vector does not have enough elements." << std::endl;
             return;
         }
         // 将tmp的前四个元素移动到plant
+        ROS_WARN("tmp Number: %d", detection_results_tmp.size());
         detection_results_plant.insert(detection_results_plant.end(), detection_results_tmp.begin(),
                                        detection_results_tmp.begin() + 4);
 
@@ -426,50 +425,64 @@ private:
 
         // 清空tmp
         detection_results_tmp.clear();
-        processAndFinalizeDetectionResults(false,detection_results_plant, detection_results_final_plant);
-        processAndFinalizeDetectionResults(true,detection_results_fruit, detection_results_final_fruit);
-        ROS_WARN("Finish processing detection results.");
+
+        ROS_WARN("fruit Number: %d", detection_results_fruit.size());
+        ROS_WARN("plant Number: %d", detection_results_plant.size());
+        processAndFinalizeDetectionResults(false, detection_results_plant, detection_results_final_plant);
+//        processAndFinalizeDetectionResults(true,detection_results_fruit, detection_results_final_fruit);
+//        ROS_WARN("fruit final Number: %d", detection_results_final_fruit.size());
+        ROS_WARN("plant final Number: %d", detection_results_final_plant.size());
+
     }
 
     void playSoundsBasedOnResults() {
         // 检查是否有检测结果
-
         dealVector();
-        std::cout<<detection_results_final_plant.size()<<std::endl;
         if (detection_results_final_plant.empty()) {
             ROS_WARN("No detection results to play sounds for.");
             return;
         }
         std::vector <std::string> sound_files_to_play;
-        std::vector <std::string> sorted_sound_files_to_play;
         // 对于每个检测结果，播放相应的音频
         for (size_t i = 0; i < detection_results_final_plant.size(); ++i) {
             // 找到与检测结果对应的音频文件
-            std::cout<<detection_results_final_plant[i]<<std::endl;
+
             std::string sound_file = getSoundFileForResult(detection_results_final_plant[i]);
             if (!sound_file.empty()) {
                 // 播放位置的音频文件
                 if (i < location_sounds.size()) {
                     sound_files_to_play.push_back(location_sounds[i]);
                 }
-
                 // 将该音频文件添加到播放列表中
                 sound_files_to_play.push_back(sound_file);
-
-
             } else {
                 // 如果没有找到音频文件，打印一条消息
                 ROS_WARN("No sound file associated with result!");
             }
 
-
         }
 
-        for (const auto &file: sorted_sound_files_to_play) {
+        for (auto &file: sound_files_to_play) {
             playSound(file);
             ros::Duration(3.0).sleep(); // 延迟3秒，你可以根据你的音频文件的长度来调整这个值
         }
+
+        ROS_WARN("Finish play Plant sound");
+
+        for (size_t i = 0; i < detection_results_final_fruit.size(); ++i) {
+            int classid = (detection_results_final_fruit[i] - 1) / 4;
+            fruit_num[classid] += fruit_count[detection_results_final_fruit[i]];
+        }
+        int maxfruit_index = 0, maxfruit = 0;
+        for (int i = 1; i <= 3; i++) {
+            if (fruit_num[i] > maxfruit)
+                maxfruit = fruit_num[i];
+            maxfruit_index = i;
+        }
+        ROS_WARN("maxfruit_index: %d,maxfruit_num: %d", maxfruit_index, maxfruit);
+
     }
+
 
 };
 

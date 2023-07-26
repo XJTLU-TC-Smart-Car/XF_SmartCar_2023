@@ -27,13 +27,13 @@ GlobalPlanner:
   default_tolerance: 0.2
   visualize_potential: false
   use_dijkstra: true
-  use_quadratic: false
+  use_quadratic: true
   use_grid_path: false
   old_navfn_behavior: false
 
   lethal_cost: 253
   neutral_cost: 50
-  cost_factor: 3.0
+  cost_factor: 2.0
   publish_potential: true
   orientation_mode: 0
   orientation_window_size: 1

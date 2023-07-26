@@ -144,11 +144,10 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request  &req,
             } else {
                 detect_timer++;
                 confidence_sum += confidence;
-		cout<<"conf:"<<confidence<<endl;
-                if (detect_timer >= 3) {
-                    float average_confidence = confidence_sum / 3.0;
+                if (detect_timer >= 1) {
+                    float average_confidence = confidence_sum / 1.0;
+                    cout<< "average_confidence: " << average_confidence << endl;
                     ROS_INFO("detectCB: get id: %d", classIndex);
-                    ROS_INFO("CONF: get conf: %d", average_confidence);
                     detect_timer = 0;
                     res.message = std::to_string(classIndex) + "," + std::to_string(average_confidence);
                     res.success = true;
