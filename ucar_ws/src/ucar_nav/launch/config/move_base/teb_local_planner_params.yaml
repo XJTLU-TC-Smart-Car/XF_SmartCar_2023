@@ -8,7 +8,7 @@ TebLocalPlannerROS:
  dt_hysteresis: 0.03
  max_samples: 500
  global_plan_overwrite_orientation: true
- allow_init_with_backwards_motion: false
+ allow_init_with_backwards_motion: true
  max_global_plan_lookahead_dist: 0.5  #1.0
  global_plan_viapoint_sep: 0.1
  global_plan_prune_distance: 0.3
@@ -18,13 +18,13 @@ TebLocalPlannerROS:
     
  # Robot
          
- max_vel_x: 2.0  #1.0   #1.8
+ max_vel_x: 1.5  #1.0   #1.8
  max_vel_y: 1.5
  max_vel_x_backwards: 1.5
  max_vel_theta: 2.0 #the angular velocity is also bounded by min_turning_radius in case of a carlike robot (r = v / omega)
  acc_lim_x: 0.5  #0.5##############
  acc_lim_y: 0.0
- acc_lim_theta: 0.5  ####################
+ acc_lim_theta: 1.0  ####################
  
  # ********************** Carlike robot parameters ********************
  min_turning_radius: 0.0 #0.5       # Min turning radius of the carlike robot (compute value using a model or adjust with rqt_reconfigure manually)
@@ -47,12 +47,12 @@ TebLocalPlannerROS:
  xy_goal_tolerance: 0.1
  yaw_goal_tolerance: 0.1
  free_goal_vel: false
- complete_global_plan: true
+ complete_global_plan: false
     
  # Obstacles
     
 
- min_obstacle_dist: 0.15  #0.27   This value must also include our robot's expansion, since footprint_model is set to "line".
+ min_obstacle_dist: 0.1  #0.27   This value must also include our robot's expansion, since footprint_model is set to "line".
  inflation_dist: 0.2 #0.6 ######     
  include_costmap_obstacles: True
  costmap_obstacles_behind_robot_dist: 2.0
@@ -83,6 +83,7 @@ TebLocalPlannerROS:
  weight_kinematics_nh: 0.5
  weight_kinematics_forward_drive: 0 # 1 #############################
  weight_kinematics_turning_radius: 0 #1 ###############################
+ weight_backward_trajectory: 0.1 # not in use before
  weight_optimaltime: 50.0  #1  ##################### must be > 0
  weight_shortest_path: 1.0
  weight_obstacle: 100
@@ -119,7 +120,7 @@ TebLocalPlannerROS:
  
  shrink_horizon_backup: True
  shrink_horizon_min_duration: 10
- oscillation_recovery: True
+ oscillation_recovery: false
  oscillation_v_eps: 0.1
  oscillation_omega_eps: 0.1
  oscillation_recovery_min_duration: 10

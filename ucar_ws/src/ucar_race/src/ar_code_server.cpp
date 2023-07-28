@@ -72,6 +72,7 @@ public:
 
     uchar3 *imgBufferRGB = NULL;
     int dettime = 0;
+
     int width = 640;
     int height = 480;
     int x_offset = static_cast<int>(width * 0.21);
@@ -118,6 +119,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
     cudaMalloc((void **) &imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3) * (height - 2 * y_offset));
     ROS_INFO("detectCB: receive detect request.");
     int detect_timer = 0;
+    int dettime_small = 0;
     int last_classIndex = -1;
     float confidence_sum = 0;
     if (!inputVideo.isOpened()) {
@@ -127,8 +129,10 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
         inputVideo.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
     }
     while (inputVideo.isOpened() && ros::ok()) {
+
+        dettime_small++;
         cv::Mat frame, imageCopy, imageFlip;
-        inputVideo >> frame;//ץȡ��Ƶ�е�һ����Ƭ
+        inputVideo >> frame;
         flip(frame, frame, 1);
         imageFlip.copyTo(imageCopy);
         Rect roi(x_offset, y_offset, frame.cols - 2 * x_offset, frame.rows - 2 * y_offset);
@@ -136,7 +140,8 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
         rectangle(frame, roi, Scalar(0, 255, 0), 2);
         float confidence = 0.0;
         std::string save_path = "/home/ucar/record_pic/";
-        std::string full_path_1 = save_path + std::to_string(dettime) + ".jpg";
+        std::string full_path_1 =
+                save_path + std::to_string(dettime) + "small_" + std::to_string(dettime_small) + ".jpg";
         cv::imwrite(full_path_1, frame);
         cvtColor(cropped_frame, cropped_frame, COLOR_BGR2RGB);
         cudaMemcpy2D((void *) imgBufferRGB, (width - 2 * x_offset)
@@ -144,17 +149,18 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                      (width - 2 * x_offset) * sizeof(uchar3),
                      (height - 2 * y_offset), cudaMemcpyHostToDevice);
         int classIndex = net->Classify(imgBufferRGB, (width - 2 * x_offset), (height - 2 * y_offset), &confidence);
-        if (classIndex > 0 && confidence > 0.4) {
+        if (classIndex > 0 && confidence > 0.5) {
+            detect_timer++;
             if (classIndex != last_classIndex) {
                 detect_timer = 0;
                 last_classIndex = classIndex;
                 confidence_sum = 0.0;
             } else {
-                detect_timer++;
+
                 confidence_sum += confidence;
                 std::string item_name = std::to_string(classIndex); //识别到的物品名称
                 std::string count = std::to_string(detect_timer); //第几次识别
-                std::string full_path_2 = save_path + item_name + "_" + count + ".jpg";
+                std::string full_path_2 = save_path + "detect_" + item_name + "_" + count + ".jpg";
                 cvtColor(cropped_frame, cropped_frame, COLOR_RGB2BGR);
                 cv::imwrite(full_path_2, frame);
                 if (detect_timer >= 1) {
@@ -170,15 +176,13 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
 
             }
         } else {
-            detect_timer++;
-            if (detect_timer >= 3) {
-
+            if (dettime_small >= 5) {
                 ROS_INFO("detectCB: Can't detect Marker.");
                 detect_timer = 0;
                 confidence_sum = 0;
                 //res.success = false;
-                res.success = true;
-                res.message = std::to_string(4) + "," + std::to_string(0);
+                res.success = false;
+//                res.message = std::to_string(4) + "," + std::to_string(0);
                 res.message = "detectCB: Can't detect Marker.";
                 inputVideo.release();
                 return true;
