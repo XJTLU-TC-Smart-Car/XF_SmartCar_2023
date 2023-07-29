@@ -117,7 +117,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                           std_srvs::Trigger::Response &res) {
     dettime++;
     cudaMalloc((void **) &imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3) * (height - 2 * y_offset));
-    ROS_INFO("detectCB: receive detect request.");
+    ROS_INFO("detectCB: receive detect request.Time： %d",dettime);
     int detect_timer = 0;
     int dettime_small = 0;
     int last_classIndex = -1;
@@ -149,7 +149,8 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                      (width - 2 * x_offset) * sizeof(uchar3),
                      (height - 2 * y_offset), cudaMemcpyHostToDevice);
         int classIndex = net->Classify(imgBufferRGB, (width - 2 * x_offset), (height - 2 * y_offset), &confidence);
-        if (classIndex > 0 && confidence > 0.5) {
+        if (confidence > 0.3) {
+//            cv::imwrite(full_path_1, frame);
             detect_timer++;
             if (classIndex != last_classIndex) {
                 detect_timer = 0;
@@ -162,6 +163,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                 std::string count = std::to_string(detect_timer); //第几次识别
                 std::string full_path_2 = save_path + "detect_" + item_name + "_" + count + ".jpg";
                 cvtColor(cropped_frame, cropped_frame, COLOR_RGB2BGR);
+
                 cv::imwrite(full_path_2, frame);
                 if (detect_timer >= 1) {
                     float average_confidence = confidence_sum / 1.0;
@@ -176,7 +178,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
 
             }
         } else {
-            if (dettime_small >= 5) {
+            if (dettime_small >= 3) {
                 ROS_INFO("detectCB: Can't detect Marker.");
                 detect_timer = 0;
                 confidence_sum = 0;
@@ -344,7 +346,7 @@ bool ARCodeNode::getGoalPose(Eigen::Vector3d &T_goal_in_base, Eigen::Vector3d &A
                 continue;
             }
         }
-        std::vector <cv::Vec3d> rvecs, tvecs; //��ת����rvecs��ƽ�ƾ���tvecs
+        std::vector <cv::Vec3d> rvecs, tvecs;
         cv::aruco::estimatePoseSingleMarkers(corners, marker_size, cameraMatrix, distCoeffs, rvecs, tvecs);//���Pose
         int id_id = 0;
         cv::Mat R_mat;

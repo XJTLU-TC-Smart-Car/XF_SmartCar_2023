@@ -15,6 +15,7 @@
 
 
 typedef actionlib::SimpleActionClient <move_base_msgs::MoveBaseAction> MoveBaseClient;
+int count = 0;
 
 class UcarNav {
 public:
@@ -31,26 +32,29 @@ public:
 
         // Initialize the locations.
         locations = {
-                {{0.068, 4.075,  0.870,  0.493}},//B
-                {{0.068, 4.075,  0.473,  0.881}},//B
-                {{0.049, 0.855,  0.870, -0.493}},//C
-                {{0.049, 0.855,  -0.468, 0.884}},//C
-                {{1.833, 4.260,  0.870,  0.493}},//D
-                {{1.833, 4.260,  0.473,  0.881}},//D
-                {{1.833, -0.171, 1.000,  0.000}},//E
-                {{1.833, -0.171,  0.000,  1.000}},
-                {{3.920, 0.113,  0.708,  0.707}},
-                {{3.920, 2.127, 0.703, 0.711}},
-                {{3.920, 2.127, -0.703, 0.711}},
-                {{3.920, 2.127, 0.703, 0.711}},
-                {{3.912, 3.322, 1.000, 0.025}},//F1
-                {{3.912, 3.322, 0.916, 0.402}},
-                {{3.912, 3.322, 0.284, 0.959}},//F2
-                {{3.143, 2.121, -0.686, 0.728}},//F3
+                {{0.068, 4.075,  0.870,  0.493},  false},//B
+                {{0.068, 4.075,  0.473,  0.881},  true},//B
+                {{0.049, 0.855,  0.870,  -0.493}, false},//C
+                {{0.049, 0.855,  -0.468, 0.884},  true},//C
+                {{1.833, 4.260,  0.870,  0.493},  false},//D
+                {{1.833, 4.260,  0.473,  0.881},  true},//D
+                {{1.833, -0.171, 1.000,  0.000},  true},//E
+                {{1.833, -0.171, 0.000,  1.000},  false},
+                {{3.940, 0.113,  0.707,  0.707},  false},
+                {{3.940, 2.127,  0.707,  0.707},  false},
+                //{{3.920, 2.127,  -0.703, 0.711},  false},
+                //{{3.920, 2.127,  0.703,  0.711},  false},
+                {{3.912, 3.322,  1.000,  0.025},  true},//F1
+                {{3.912, 3.322,  0.916,  0.402},  true},
+                {{3.912, 3.322,  0.284,  0.959},  true},//F2
+                {{3.232, 4.866, 0.802,  0.597},  true},
+                {{4.802, 4.929,  0.473,  0.881},  true},
+                {{3.498, 2.209,  -0.826, 0.563},  true},//F3
                 //{{3.143, 2.121, 0.686, 0.728}},
-                {{4.711, 2.160, -0.605, 0.796}},//F4
-                {{3.967, 2.160, -0.703, 0.711}},
-                {{4.991, -0.230, -0.010, 1.000}}
+                {{4.613, 1.945,  -0.587, 0.810},  true},//F4
+                {{3.940, 2.127,  -0.707, 0.707},  false},
+                {{3.940, 0.113,  -0.707, 0.707},  false},
+                {{5.021, -0.378, -0.000, 1.000},  false}
         };
 
         qr_sub = nh.subscribe("/qr_res", 1, &UcarNav::qrCallback, this);
@@ -82,11 +86,11 @@ public:
 
         // Loop over all the goals
         for (size_t i = 0; i < locations.size(); ++i) {
-            moveToGoal(locations[i]);
-
-            if (i < 15 && i != 0 && i != 2  && i != 4  && i!= 7 && i!= 8 && i!= 10&& i!= 13 ){
-                ROS_WARN("Point:%d", i);
-                startDetectThread(); // 启动检测线程
+            moveToGoal(locations[i].first);
+            if (locations[i].second) {
+                startDetectThread(); // 如果布尔值为 true，则开启线程
+            } else {
+                stop_thread_flag = true; // 如果布尔值为 false，则设置标志以停止线程
             }
 
             if (arrive == 0) { // If not arrive, break the loop
@@ -125,7 +129,7 @@ private:
 
     int flag;
     int arrive;
-    std::vector <std::vector<double>> locations;
+    std::vector<std::pair<std::vector < double>, bool>> locations;
     ros::Subscriber qr_sub;
 
     ros::Publisher sound_pub;
@@ -159,7 +163,11 @@ private:
             {3, "/home/ucar/ucar_ws/src/ucar_race/res/3ge.wav"},
             {4, "/home/ucar/ucar_ws/src/ucar_race/res/4ge.wav"},
             {5, "/home/ucar/ucar_ws/src/ucar_race/res/5ge.wav"},
-            {6, "/home/ucar/ucar_ws/src/ucar_race/res/6ge.wav"}
+            {6, "/home/ucar/ucar_ws/src/ucar_race/res/6ge.wav"},
+            {7, "/home/ucar/ucar_ws/src/ucar_race/res/7ge.wav"},
+            {8, "/home/ucar/ucar_ws/src/ucar_race/res/8ge.wav"},
+            {9, "/home/ucar/ucar_ws/src/ucar_race/res/9ge.wav"}
+
     };
 
     std::string getSoundFileForResult(int result) {
@@ -293,6 +301,11 @@ private:
     void startDetectThread() {
         stop_thread_flag = false; // 重置标志
         detect_thread = std::make_shared<std::thread>([&]() {
+            count++;
+            bool flag_1 = stop_thread_flag.load();
+            ROS_WARN("start detect thread,time: %d,flag: %d", count, flag_1);
+
+            auto start_time = std::chrono::system_clock::now();
             while (!stop_thread_flag) { // 在循环中检查标志
                 // 设置 ROS 服务客户端
                 code_detect_client_ = nh_.serviceClient<std_srvs::Trigger>("/detect_server");
@@ -314,8 +327,10 @@ private:
                             result.classIndex = classIndex;
                             result.average_confidence = average_confidence;
                             detection_results_tmp.push_back(result);
+//                            stop_thread_flag = true;
+//                            break;
+                            return;
 
-                            break;
                         } else {
                             ROS_ERROR("Detection failed. Results: %s", detect_srv.response.message.c_str());
                         }
@@ -325,6 +340,11 @@ private:
                     }
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 让出一些CPU时间
+                auto current_time = std::chrono::system_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time);
+                if (elapsed.count() >= 2)
+//                    stop_thread_flag = true; // 如果已经过了两秒，设置标志以停止线程
+                    return;
             }
         });
         detect_thread->detach();
@@ -357,7 +377,7 @@ private:
                 result.classIndex = 5;
                 result.average_confidence = 0;
             } else if (result.classIndex == 2) {
-                result.classIndex = 9;
+                result.classIndex = 0;
                 result.average_confidence = 0;
             }
         }
@@ -384,8 +404,8 @@ private:
                     }
                 }
                 // 找到一个没有出现的classIndex
-                int newClassIndex = 1;
-                for (; newClassIndex <= 9; newClassIndex++) {
+                int newClassIndex = 5;
+                for (; newClassIndex <= 16; newClassIndex++) {
                     if (!isClassIndexPresent(newClassIndex, detection_results)) {
                         break;
                     }
@@ -473,6 +493,7 @@ private:
 
         // 清空tmp
         detection_results_tmp.clear();
+        ROS_WARN("Plant size: %d, Fruit size: %d", detection_results_plant.size(), detection_results_fruit.size());
         processResults_Plant(detection_results_plant, detection_results_final_plant);
         processResults_Fruit(detection_results_fruit, detection_results_final_fruit);
 
@@ -531,6 +552,7 @@ private:
         for (auto &file: sound_files_to_play) {
             playSound(file);
             ros::Duration(3.0).sleep(); // 延迟3秒，你可以根据你的音频文件的长度来调整这个值
+
         }
 
         ROS_WARN("Finish play Plant sound");

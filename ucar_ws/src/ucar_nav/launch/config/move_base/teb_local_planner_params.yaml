@@ -11,19 +11,19 @@ TebLocalPlannerROS:
  allow_init_with_backwards_motion: true
  max_global_plan_lookahead_dist: 0.5  #1.0
  global_plan_viapoint_sep: 0.1
- global_plan_prune_distance: 0.3
+ global_plan_prune_distance: 0.5
  exact_arc_length: True
  feasibility_check_no_poses: 2
  publish_feedback: False
     
  # Robot
          
- max_vel_x: 1.5  #1.0   #1.8
- max_vel_y: 1.5
- max_vel_x_backwards: 1.5
+ max_vel_x: 1.2  #1.0   #1.8
+ max_vel_y: 1.0
+ max_vel_x_backwards: 3.0
  max_vel_theta: 2.0 #the angular velocity is also bounded by min_turning_radius in case of a carlike robot (r = v / omega)
- acc_lim_x: 0.5  #0.5##############
- acc_lim_y: 0.0
+ acc_lim_x: 0.6  #0.5##############
+ acc_lim_y: 0.5
  acc_lim_theta: 1.0  ####################
  
  # ********************** Carlike robot parameters ********************
@@ -52,7 +52,7 @@ TebLocalPlannerROS:
  # Obstacles
     
 
- min_obstacle_dist: 0.1  #0.27   This value must also include our robot's expansion, since footprint_model is set to "line".
+ min_obstacle_dist: 0.15  #0.27   This value must also include our robot's expansion, since footprint_model is set to "line".
  inflation_dist: 0.2 #0.6 ######     
  include_costmap_obstacles: True
  costmap_obstacles_behind_robot_dist: 2.0
@@ -83,8 +83,8 @@ TebLocalPlannerROS:
  weight_kinematics_nh: 0.5
  weight_kinematics_forward_drive: 0 # 1 #############################
  weight_kinematics_turning_radius: 0 #1 ###############################
- weight_backward_trajectory: 0.1 # not in use before
- weight_optimaltime: 50.0  #1  ##################### must be > 0
+ weight_backward_trajectory: 1 # not in use before
+ weight_optimaltime: 20.0  #1  ##################### must be > 0
  weight_shortest_path: 1.0
  weight_obstacle: 100
  weight_inflation: 0.2  #0.2#########################
@@ -97,7 +97,7 @@ TebLocalPlannerROS:
 
  enable_homotopy_class_planning: true
  enable_multithreading: True
- max_number_classes: 4
+ max_number_classes: 8
  selection_cost_hysteresis: 1.0
  selection_prefer_initial_plan: 0.95
  selection_obst_cost_scale: 1.0
