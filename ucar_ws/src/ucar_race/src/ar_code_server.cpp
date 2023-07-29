@@ -71,7 +71,7 @@ public:
                                    "Watermelon_1", "Watermelon_2", "Watermelon_3", "Watermelon_4"};
 
     uchar3 *imgBufferRGB = NULL;
-    int dettime = 0;
+    int dettime = 0, detect_success = 0;
 
     int width = 640;
     int height = 480;
@@ -117,7 +117,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                           std_srvs::Trigger::Response &res) {
     dettime++;
     cudaMalloc((void **) &imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3) * (height - 2 * y_offset));
-    ROS_INFO("detectCB: receive detect request.Time： %d",dettime);
+    ROS_INFO("detectCB: receive detect request.Time： %d", dettime);
     int detect_timer = 0;
     int dettime_small = 0;
     int last_classIndex = -1;
@@ -149,9 +149,13 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                      (width - 2 * x_offset) * sizeof(uchar3),
                      (height - 2 * y_offset), cudaMemcpyHostToDevice);
         int classIndex = net->Classify(imgBufferRGB, (width - 2 * x_offset), (height - 2 * y_offset), &confidence);
-        if (confidence > 0.3) {
+        if (confidence > 0.4) {
 //            cv::imwrite(full_path_1, frame);
             detect_timer++;
+            if ((detect_success < 5 && classIndex > 4) ||
+                detect_success >= 5 && (classIndex == 1 || classIndex == 2 || classIndex == 3 || classIndex == 4)) {
+                continue;
+            }
             if (classIndex != last_classIndex) {
                 detect_timer = 0;
                 last_classIndex = classIndex;
@@ -165,9 +169,11 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                 cvtColor(cropped_frame, cropped_frame, COLOR_RGB2BGR);
 
                 cv::imwrite(full_path_2, frame);
-                if (detect_timer >= 1) {
-                    float average_confidence = confidence_sum / 1.0;
-                    cout << "average_confidence: " << average_confidence << endl;
+                if (detect_timer >= 2) {
+                    float average_confidence = confidence_sum / 2.0;
+                    cout << "average_confidence: " << average_confidence << "detect_success:" << detect_success << endl;
+                    detect_success++;
+
                     ROS_INFO("detectCB: get id: %d", classIndex);
                     detect_timer = 0;
                     res.message = std::to_string(classIndex) + "," + std::to_string(average_confidence);

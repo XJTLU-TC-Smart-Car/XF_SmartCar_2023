@@ -15,7 +15,6 @@
 #include <geometry_msgs/Twist.h>
 
 typedef actionlib::SimpleActionClient <move_base_msgs::MoveBaseAction> MoveBaseClient;
-int count = 0;
 
 class UcarNav {
 public:
@@ -32,40 +31,36 @@ public:
 
         // Initialize the locations.
         locations = {
-                {{0.068, 4.075,  0.870,  0.493},  false},//B
-                {{0.068, 4.075,  0.473,  0.881},  true},//B
-                {{0.049, 0.855,  0.870,  -0.493}, false},//C
-                {{0.049, 0.855,  -0.468, 0.884},  true},//C
-                {{1.833, 4.260,  0.870,  0.493},  false},//D
-                {{1.833, 4.260,  0.473,  0.881},  true},//D
-                {{1.833, -0.171, 1.000,  0.000},  true},//E
-                {{1.833, -0.171, 0.000,  1.000},  false},
-                {{3.930, 0.113,  0.707,  0.707},  false},
-                {{3.930, 2.127,  0.707,  0.707},  false},
+
+                {{-0.368, 4.692,  0.752, 0.659},  false},//B
+                {{-0.368, 4.692,  0.996, -0.084},  true},//B
+                {{0.769,  0.172,  -0.713, 0.702},  false},//C
+                {{0.769,  0.172,  0.046, 0.999},  true},//C
+                {{1.735,  4.598,   0.752, 0.659},  false},//D
+                {{1.735,  4.598,  0.996, -0.084},  true},//D
+                {{1.703,  0.153,  1.000, -0.001}, false},//E
+                {{1.833,  -0.171, 0.000,  1.000},  true},//E
+                {{3.930,  0.113,  0.707,  0.707},  false},
+                {{3.930,  2.127,  0.707,  0.707},  false},
                 //{{3.920, 2.127,  -0.703, 0.711},  false},
                 //{{3.920, 2.127,  0.703,  0.711},  false},
-                {{3.912, 3.322,  1.000,  0.025},  true},//F1
-                {{3.912, 3.322,  0.916,  0.402},  true},
-                {{3.912, 3.322,  0.284,  0.959},  true},//F2
-                {{3.131, 4.420, 0.700,  0.714},  false},
-                {{3.131, 4.420, 0.912,  0.410},  true},//F5
-                {{4.705, 4.725,  0.700,  0.714},  false},
-                {{4.705, 4.725,  0.335,  0.942},  true},//F6
-                
-                {{3.498, 2.209,  -0.826, 0.563},  true},//F3
+                {{3.912,  3.322,  1.000,  0.025},  true},//F1
+                {{3.912,  3.322,  0.916,  0.402},  true},
+                {{3.912,  3.322,  0.284,  0.959},  true},//F2
+                {{3.131,  4.420,  0.700,  0.714},  false},
+                {{3.131,  4.420,  0.912,  0.410},  true},//F5
+                {{4.705,  4.725,  0.700,  0.714},  false},
+                {{4.705,  4.725,  0.335,  0.942},  true},//F6
+                {{3.478,  2.172,  0.879,  -0.476}, true},//F3
                 //{{3.143, 2.121, 0.686, 0.728}},
-                {{4., 1.945,  -0.587, 0.810},  true},//F4
-                {{3.930, 2.127,  -0.707, 0.707},  false},
-                {{3.940, 0.113,  -0.000, 1.000},  false},
-                {{5.000, -0.250, -0.000, 1.000},  false}
+                {{4.544,  2.245,  -0.521, 0.854},  true},//F4
+                {{3.930,  2.127,  -0.707, 0.707},  false},
+                {{3.940,  0.113,  -0.000, 1.000},  false},
+                {{4.900,  -0.275, -0.000, 1.000},  false}
         };
-
         qr_sub = nh.subscribe("/qr_res", 1, &UcarNav::qrCallback, this);
-
-
         set_wake_words_client_ = nh_.serviceClient<xf_mic_asr_offline::Set_Awake_Word_srv>(
                 "/xf_asr_offline_node/set_awake_word_srv");
-
         // Subscribers and publishers
         wake_up_sub_ = nh_.subscribe("/mic/awake/angle", 10, &UcarNav::wakeUpCallback, this);
 
@@ -91,47 +86,71 @@ public:
         for (size_t i = 0; i < locations.size(); ++i) {
             moveToGoal(locations[i].first);
             if (locations[i].second) {
-                startDetectThread(); // 如果布尔值为 true，则开启线程
+                startDetectThread(i); // 如果布尔值为 true，则开启线程
             } else {
                 stop_thread_flag = true; // 如果布尔值为 false，则设置标志以停止线程
             }
-
-            if (arrive == 0) { // If not arrive, break the loop
+            if (arrive == 0)
                 break;
-            }
+//            if (i == 5) {
+//                ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+//                geometry_msgs::Twist vel_msg;
+//                vel_msg.linear.x = 0.5;  // 设置前进速度为1.0 m/s
+//                vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
+//
+//                ros::Rate rate(10);  // 设置发布频率为10Hz
+//                for (int j = 0; j < 45; ++j) {
+//                    vel_pub.publish(vel_msg);
+//                    rate.sleep();
+//                }
+//                ROS_WARN("start move");
+//                vel_msg.linear.x = 0;  // 停止前进
+//                vel_pub.publish(vel_msg);  // 发布停止命令
+//            }
             if (i == 8) {
-        ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-        geometry_msgs::Twist vel_msg;
-        vel_msg.linear.x = 0.5;  // 设置前进速度为1.0 m/s
-        vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
+                std::thread t([this, i]() {  // 注意这里，我们添加了this
+                    while (i != 9) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    }
+                    ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+                    geometry_msgs::Twist vel_msg;
+                    vel_msg.linear.x = 0.5;  // 设置前进速度为1.0 m/s
+                    vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
 
-        ros::Rate rate(10);  // 设置发布频率为10Hz
-        for (int j = 0; j <45; ++j) {  
-            vel_pub.publish(vel_msg);
-            rate.sleep();
+                    ros::Rate rate(10);  // 设置发布频率为10Hz
+                    for (int j = 0; j < 45; ++j) {
+                        vel_pub.publish(vel_msg);
+                        rate.sleep();
+                    }
+                    ROS_WARN("start move");
+                    vel_msg.linear.x = 0;  // 停止前进
+                    vel_pub.publish(vel_msg);  // 发布停止命令
+                });
+                t.detach();
+            } else if (i == 19) {
+                std::thread t([this, i]() {  // 注意这里，我们添加了this
+                    while (i != 20) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    }
+                    ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+                    geometry_msgs::Twist vel_msg;
+                    vel_msg.linear.x = 0.5;  // 设置前进速度为1.0 m/s
+                    vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
+
+                    ros::Rate rate(10);  // 设置发布频率为10Hz
+                    for (int j = 0; j < 45; ++j) {
+                        vel_pub.publish(vel_msg);
+                        rate.sleep();
+                    }
+                    ROS_WARN("start move");
+                    vel_msg.linear.x = 0;  // 停止前进
+                    vel_pub.publish(vel_msg);  // 发布停止命令
+                });
+                t.detach();
+            }
+
         }
-        ROS_WARN("start move");
-        vel_msg.linear.x = 0;  // 停止前进
-        vel_pub.publish(vel_msg);  // 发布停止命令
-    }
-    else if(i==19) {
-        ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
-        geometry_msgs::Twist vel_msg;
-        vel_msg.linear.x = 0.7;  // 设置前进速度为1.0 m/s
-        vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
-
-        ros::Rate rate(10);  // 设置发布频率为10Hz
-        for (int j = 0; j < 20; ++j) {  
-            vel_pub.publish(vel_msg);
-            rate.sleep();
-        }
-       ROS_WARN("start move");
-        vel_msg.linear.x = 0;  // 停止前进
-        vel_pub.publish(vel_msg);  // 发布停止命令
-    }
-
-        }
         if (arrive == 1) {
             playSoundsBasedOnResults();
         }
@@ -163,7 +182,8 @@ private:
 
     int flag;
     int arrive;
-    std::vector<std::pair<std::vector < double>, bool>> locations;
+    std::vector<std::pair<std::vector < double>, bool>>
+    locations;
     ros::Subscriber qr_sub;
 
     ros::Publisher sound_pub;
@@ -331,14 +351,10 @@ private:
     }
 
 
-    // 定义结构体
-    void startDetectThread() {
+// 定义结构体
+    void startDetectThread(int location_i) {
         stop_thread_flag = false; // 重置标志
         detect_thread = std::make_shared<std::thread>([&]() {
-            count++;
-            bool flag_1 = stop_thread_flag.load();
-            ROS_WARN("start detect thread,time: %d,flag: %d", count, flag_1);
-
             auto start_time = std::chrono::system_clock::now();
             while (!stop_thread_flag) { // 在循环中检查标志
                 // 设置 ROS 服务客户端
@@ -361,8 +377,6 @@ private:
                             result.classIndex = classIndex;
                             result.average_confidence = average_confidence;
                             detection_results_tmp.push_back(result);
-//                            stop_thread_flag = true;
-//                            break;
                             return;
 
                         } else {
@@ -463,9 +477,13 @@ private:
         int classend = 4;
 
         for (auto &result: detection_results) {
-            if (result.classIndex < 1 || result.classIndex > 4) {
+            if (result.classIndex > 12) {
                 result.classIndex = 1;
                 result.average_confidence = 0.0;
+            }
+            if (result.classIndex > 4) {
+                result.classIndex = (result.classIndex - 1) / 4;
+                result.average_confidence = result.average_confidence / 2;
             }
         }
         for (int i = classbegin; i <= classend; i++) {
