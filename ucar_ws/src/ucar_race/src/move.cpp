@@ -12,7 +12,7 @@
 #include <std_msgs/Int32.h>
 #include <std_srvs/Trigger.h>
 #include <tf/transform_listener.h>
-
+#include <geometry_msgs/Twist.h>
 
 typedef actionlib::SimpleActionClient <move_base_msgs::MoveBaseAction> MoveBaseClient;
 int count = 0;
@@ -40,21 +40,24 @@ public:
                 {{1.833, 4.260,  0.473,  0.881},  true},//D
                 {{1.833, -0.171, 1.000,  0.000},  true},//E
                 {{1.833, -0.171, 0.000,  1.000},  false},
-                {{3.940, 0.113,  0.707,  0.707},  false},
-                {{3.940, 2.127,  0.707,  0.707},  false},
+                {{3.930, 0.113,  0.707,  0.707},  false},
+                {{3.930, 2.127,  0.707,  0.707},  false},
                 //{{3.920, 2.127,  -0.703, 0.711},  false},
                 //{{3.920, 2.127,  0.703,  0.711},  false},
                 {{3.912, 3.322,  1.000,  0.025},  true},//F1
                 {{3.912, 3.322,  0.916,  0.402},  true},
                 {{3.912, 3.322,  0.284,  0.959},  true},//F2
-                {{3.232, 4.866, 0.802,  0.597},  true},
-                {{4.802, 4.929,  0.473,  0.881},  true},
+                {{3.131, 4.420, 0.700,  0.714},  false},
+                {{3.131, 4.420, 0.912,  0.410},  true},//F5
+                {{4.705, 4.725,  0.700,  0.714},  false},
+                {{4.705, 4.725,  0.335,  0.942},  true},//F6
+                
                 {{3.498, 2.209,  -0.826, 0.563},  true},//F3
                 //{{3.143, 2.121, 0.686, 0.728}},
-                {{4.613, 1.945,  -0.587, 0.810},  true},//F4
-                {{3.940, 2.127,  -0.707, 0.707},  false},
-                {{3.940, 0.113,  -0.707, 0.707},  false},
-                {{5.021, -0.378, -0.000, 1.000},  false}
+                {{4., 1.945,  -0.587, 0.810},  true},//F4
+                {{3.930, 2.127,  -0.707, 0.707},  false},
+                {{3.940, 0.113,  -0.000, 1.000},  false},
+                {{5.000, -0.250, -0.000, 1.000},  false}
         };
 
         qr_sub = nh.subscribe("/qr_res", 1, &UcarNav::qrCallback, this);
@@ -96,6 +99,37 @@ public:
             if (arrive == 0) { // If not arrive, break the loop
                 break;
             }
+            if (i == 8) {
+        ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+        geometry_msgs::Twist vel_msg;
+        vel_msg.linear.x = 0.5;  // 设置前进速度为1.0 m/s
+        vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
+
+        ros::Rate rate(10);  // 设置发布频率为10Hz
+        for (int j = 0; j <45; ++j) {  
+            vel_pub.publish(vel_msg);
+            rate.sleep();
+        }
+        ROS_WARN("start move");
+        vel_msg.linear.x = 0;  // 停止前进
+        vel_pub.publish(vel_msg);  // 发布停止命令
+    }
+    else if(i==19) {
+        ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+
+        geometry_msgs::Twist vel_msg;
+        vel_msg.linear.x = 0.7;  // 设置前进速度为1.0 m/s
+        vel_msg.angular.z = 0;  // 设置转向速度为0，保证直线前进
+
+        ros::Rate rate(10);  // 设置发布频率为10Hz
+        for (int j = 0; j < 20; ++j) {  
+            vel_pub.publish(vel_msg);
+            rate.sleep();
+        }
+       ROS_WARN("start move");
+        vel_msg.linear.x = 0;  // 停止前进
+        vel_pub.publish(vel_msg);  // 发布停止命令
+    }
 
         }
         if (arrive == 1) {
@@ -428,6 +462,12 @@ private:
         int classbegin = 1;
         int classend = 4;
 
+        for (auto &result: detection_results) {
+            if (result.classIndex < 1 || result.classIndex > 4) {
+                result.classIndex = 1;
+                result.average_confidence = 0.0;
+            }
+        }
         for (int i = classbegin; i <= classend; i++) {
             if (!isClassIndexPresent(i, detection_results)) {
                 allPresent = false;

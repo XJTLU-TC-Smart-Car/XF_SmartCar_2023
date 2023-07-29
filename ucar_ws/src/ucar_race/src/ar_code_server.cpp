@@ -68,15 +68,15 @@ public:
     vector <string> class_names = {"Background", "Corn_Plant", "Cucumber_Plant", "Rice_Plant", "Wheat_Plant",
                                    "Corn_1", "Corn_2", "Corn_3", "Corn_4",
                                    "Cucumber_1", "Cucumber_2", "Cucumber_3", "Cucumber_4",
-                                   "Watermelen_1", "Watermelen_2", "Watermelen_3", "Watermelen_4"};
+                                   "Watermelon_1", "Watermelon_2", "Watermelon_3", "Watermelon_4"};
 
     uchar3 *imgBufferRGB = NULL;
     int dettime = 0;
 
     int width = 640;
     int height = 480;
-    int x_offset = static_cast<int>(width * 0.21);
-    int y_offset = static_cast<int>(height * 0.21);
+    int x_offset = static_cast<int>(width * 0.3);
+    int y_offset = static_cast<int>(height * 0.3);
 
     bool detectCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
@@ -194,6 +194,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
     inputVideo.release();
     return true;
 }
+
 
 bool ARCodeNode::parkingCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
     ROS_INFO("parkingCB: receive approach request.");
