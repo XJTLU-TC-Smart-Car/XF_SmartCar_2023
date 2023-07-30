@@ -62,21 +62,33 @@ public:
     cv::VideoCapture inputVideo;
     cv::Ptr <cv::aruco::Dictionary> dictionary;
     Mat cameraMatrix, distCoeffs;
-    imageNet *net = imageNet::Create(NULL, "/home/ucar/classfication_trt/car.onnx", NULL,
-                                     "/home/ucar/classfication_trt/label.txt", "input", "output");
+    imageNet *net_1 = imageNet::Create(NULL, "/home/ucar/classfication_trt/plant.onnx", NULL,
+                                       "/home/ucar/classfication_trt/label_plant.txt", "input", "output");
 
-    vector <string> class_names = {"Background", "Corn_Plant", "Cucumber_Plant", "Rice_Plant", "Wheat_Plant",
-                                   "Corn_1", "Corn_2", "Corn_3", "Corn_4",
-                                   "Cucumber_1", "Cucumber_2", "Cucumber_3", "Cucumber_4",
-                                   "Watermelon_1", "Watermelon_2", "Watermelon_3", "Watermelon_4"};
+    imageNet *net_2 = imageNet::Create(NULL, "/home/ucar/classfication_trt/fruit.onnx", NULL,
+                                       "/home/ucar/classfication_trt/label_fruit.txt", "input", "output");
+
+    vector <string> class_names_1 = {"Background", "Corn_Plant", "Cucumber_Plant", "Rice_Plant", "Wheat_Plant"};
+    vector <string> class_names_2 = {"Background", "Corn_1", "Corn_2", "Corn_3", "Corn_4",
+                                     "Cucumber_1", "Cucumber_2", "Cucumber_3", "Cucumber_4",
+                                     "Watermelon_1", "Watermelon_2", "Watermelon_3", "Watermelon_4"};
 
     uchar3 *imgBufferRGB = NULL;
-    int dettime = 0, detect_success = 0;
+    int detect_success = 0;
+    bool detect_flag[17] = {0};
+
+    struct DetectionResult {
+        int classIndex;
+        float average_confidence;
+    };
+    std::vector <DetectionResult> detection_results_tmp;
 
     int width = 640;
     int height = 480;
-    int x_offset = static_cast<int>(width * 0.3);
-    int y_offset = static_cast<int>(height * 0.3);
+    int x_offset = width * 0.35;
+    int y_offset_up = height * 0.4;
+    int y_offset_down = height * 0.3;
+
 
     bool detectCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
@@ -115,9 +127,8 @@ ARCodeNode::ARCodeNode() {
 
 bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                           std_srvs::Trigger::Response &res) {
-    dettime++;
-    cudaMalloc((void **) &imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3) * (height - 2 * y_offset));
-    ROS_INFO("detectCB: receive detect request.Time： %d", dettime);
+    cudaMalloc((void **) &imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3) * (height - y_offset_up - y_offset_down));
+    ROS_INFO("detectCB: receive detect request.");
     int detect_timer = 0;
     int dettime_small = 0;
     int last_classIndex = -1;
@@ -135,27 +146,51 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
         inputVideo >> frame;
         flip(frame, frame, 1);
         imageFlip.copyTo(imageCopy);
-        Rect roi(x_offset, y_offset, frame.cols - 2 * x_offset, frame.rows - 2 * y_offset);
+        if (detect_success >= 2) { //最后两个水果是小板
+            x_offset = width * 0.32;
+            y_offset_up = height * 0.33;
+            y_offset_down = height * 0.3;
+        }
+        if (detect_success >= 4) { //最后两个水果是小板
+            x_offset = width * 0.23;
+            y_offset_up = height * 0.24;
+            y_offset_down = height * 0.23;
+        }
+        if (detect_success >= 6) { //最后两个水果是小板
+            x_offset = width * 0.33;
+            y_offset_up = height * 0.38;
+            y_offset_down = height * 0.34;
+        }
+        if (detect_success >= 8) { //最后两个水果是小板
+            x_offset = width * 0.37;
+            y_offset_up = height * 0.4;
+            y_offset_down = height * 0.35;
+        }
+        Rect roi(x_offset, y_offset_up, frame.cols - 2 * x_offset, frame.rows - y_offset_up - y_offset_down);
         Mat cropped_frame = frame(roi);
         rectangle(frame, roi, Scalar(0, 255, 0), 2);
         float confidence = 0.0;
         std::string save_path = "/home/ucar/record_pic/";
-        std::string full_path_1 =
-                save_path + std::to_string(dettime) + "small_" + std::to_string(dettime_small) + ".jpg";
-        cv::imwrite(full_path_1, frame);
+
         cvtColor(cropped_frame, cropped_frame, COLOR_BGR2RGB);
-        cudaMemcpy2D((void *) imgBufferRGB, (width - 2 * x_offset)
-                                            * sizeof(uchar3), (void *) cropped_frame.data, cropped_frame.step,
+
+        cudaMemcpy2D((void *) imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3),
+                     (void *) cropped_frame.data, cropped_frame.step,
                      (width - 2 * x_offset) * sizeof(uchar3),
-                     (height - 2 * y_offset), cudaMemcpyHostToDevice);
-        int classIndex = net->Classify(imgBufferRGB, (width - 2 * x_offset), (height - 2 * y_offset), &confidence);
-        if (confidence > 0.4) {
-//            cv::imwrite(full_path_1, frame);
+                     (height - y_offset_up - y_offset_down), cudaMemcpyHostToDevice);
+
+        int classIndex = 0;
+        if (detect_success < 4)
+            classIndex = net_1->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down), &confidence);
+        else
+            classIndex = net_2->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down), &confidence);
+
+
+        float confthred = 0.5;
+        if (detect_success >= 4)
+            confthred = 0.4;
+        if (confidence > confthred) {
             detect_timer++;
-            if ((detect_success < 5 && classIndex > 4) ||
-                detect_success >= 5 && (classIndex == 1 || classIndex == 2 || classIndex == 3 || classIndex == 4)) {
-                continue;
-            }
             if (classIndex != last_classIndex) {
                 detect_timer = 0;
                 last_classIndex = classIndex;
@@ -164,15 +199,23 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
 
                 confidence_sum += confidence;
                 std::string item_name = std::to_string(classIndex); //识别到的物品名称
-                std::string count = std::to_string(detect_timer); //第几次识别
-                std::string full_path_2 = save_path + "detect_" + item_name + "_" + count + ".jpg";
+                std::string count = std::to_string(detect_timer); //第几个
+                std::string success_time = std::to_string(detect_success); //第几次识别
+                std::string full_path_2 =
+                        save_path + "success_" + success_time + "_detect_" + item_name + "_" + count + ".jpg";
                 cvtColor(cropped_frame, cropped_frame, COLOR_RGB2BGR);
 
                 cv::imwrite(full_path_2, frame);
-                if (detect_timer >= 2) {
-                    float average_confidence = confidence_sum / 2.0;
-                    cout << "average_confidence: " << average_confidence << "detect_success:" << detect_success << endl;
+
+                if (detect_timer >= 1) {
+                    float average_confidence = confidence_sum / 1.0;
+                    DetectionResult result;
+                    result.classIndex = classIndex;
+                    result.average_confidence = average_confidence;
+                    detection_results_tmp.push_back(result);
                     detect_success++;
+                    detect_flag[classIndex] = 1;
+                    cout << "average_confidence: " << average_confidence << "detect_success:" << detect_success << endl;
 
                     ROS_INFO("detectCB: get id: %d", classIndex);
                     detect_timer = 0;
@@ -184,14 +227,21 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
 
             }
         } else {
-            if (dettime_small >= 3) {
-                ROS_INFO("detectCB: Can't detect Marker.");
-                detect_timer = 0;
-                confidence_sum = 0;
-                //res.success = false;
-                res.success = false;
-//                res.message = std::to_string(4) + "," + std::to_string(0);
-                res.message = "detectCB: Can't detect Marker.";
+            int classIndex_replace = 0, classbegin = 1, classend = 4;
+            if (dettime_small >= 5) {
+                if (detect_success < 4)
+                    for (int i = classbegin; i <= classend; i++) {
+                        auto it = std::find_if(detection_results_tmp.begin(), detection_results_tmp.end(),
+                                               [i](const DetectionResult &dr) { return dr.classIndex == i; });
+                        if (it == detection_results_tmp.end()) {
+                            classIndex_replace = i;
+                            break;
+                        }
+                    }
+                detect_success++;
+                res.success = true;
+                ROS_INFO("detectCB: Can't detect Marker.Replace with %d", classIndex_replace);
+                res.message = std::to_string(classIndex_replace) + "," + std::to_string(0.1);
                 inputVideo.release();
                 return true;
             }

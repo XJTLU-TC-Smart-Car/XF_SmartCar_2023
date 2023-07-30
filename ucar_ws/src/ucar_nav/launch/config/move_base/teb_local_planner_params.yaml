@@ -97,7 +97,7 @@ TebLocalPlannerROS:
 
  enable_homotopy_class_planning: true
  enable_multithreading: True
- max_number_classes: 8
+ max_number_classes: 4
  selection_cost_hysteresis: 1.0
  selection_prefer_initial_plan: 0.95
  selection_obst_cost_scale: 1.0
