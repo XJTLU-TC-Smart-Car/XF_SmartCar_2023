@@ -3,8 +3,8 @@ import time
 import os
 
 # 设定ROI区域的偏移量
-x_offset = int(640 * 0.32)
-y_offset_up = int(480 * 0.33)
+x_offset = int(640 * 0.3)
+y_offset_up = int(480 * 0.3)
 y_offset_down = int(480 * 0.3)
 
 # 设定保存地址

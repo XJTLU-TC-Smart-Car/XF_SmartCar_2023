@@ -1,0 +1,9 @@
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ucar/ucar_ws/src
+CMake Error at CMakeLists.txt:63 (message):
+  find_package(catkin) failed.  catkin was neither found in the workspace nor
+  in the CMAKE_PREFIX_PATH.  One reason may be that no ROS setup.sh was
+  sourced before.
+
+
+-- Configuring incomplete, errors occurred!
+See also "/home/ucar/ucar_ws/src/cmake-build-debug/CMakeFiles/CMakeOutput.log".

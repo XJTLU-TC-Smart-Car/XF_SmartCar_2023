@@ -556,9 +556,9 @@ private:
             }
 
         }
-
-        for (auto &file: sound_files_to_play) {
-            playSound(file);
+        ros::Duration(5.0).sleep();
+        // 播放音频文件
+        for (size_t i = 0; i < detection_results_final_plant.size(); ++i)
             ros::Duration(3.0).sleep(); // 延迟3秒，你可以根据你的音频文件的长度来调整这个值
 
         }
