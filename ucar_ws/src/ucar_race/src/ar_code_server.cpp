@@ -146,63 +146,68 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
         inputVideo >> frame;
         flip(frame, frame, 1);
         imageFlip.copyTo(imageCopy);
-        if (detect_success >= 0) { //固定板参数,前两块板是大板
-            x_offset = width *  0.3;
-            y_offset_up = height * 0.3;
-            y_offset_down = height * 0.3;
-        }
-//        if (detect_success >= 0) { //移动版参数，前两块板子是小板
-//            x_offset = width * 0.35;
-//            y_offset_up = height * 0.4;
+//        if (detect_success >= 0) { //固定板参数,前两块板是大板
+//            x_offset = width *  0.3;
+//            y_offset_up = height * 0.3;
 //            y_offset_down = height * 0.3;
 //        }
-        if (detect_success >= 2) { //最后两个植被大识别板
+        if (detect_success >= 0) { //移动版参数，前两块板子是小板
             x_offset = width * 0.26;
-            y_offset_up = height * 0.26;
-            y_offset_down = height * 0.26;
+            y_offset_up = height * 0.24;
+            y_offset_down = height * 0.32;
         }
-        if (detect_success >= 4) { //A点中心是特大板
-            x_offset = width * 0.13;
-            y_offset_up = height * 0.13;
-            y_offset_down = height * 0.13;
-        }
+//        if (detect_success >= 2) { //最后两个植被大识别板
+//            x_offset = width * 0.26;
+//            y_offset_up = height * 0.26;
+//            y_offset_down = height * 0.26;
+//        }
+//        if (detect_success >= 4) { //A点中心是特大板
+//            x_offset = width * 0.13;
+//            y_offset_up = height * 0.13;
+//            y_offset_down = height * 0.13;
+//        }
         if (detect_success >= 6) { //最后两个水果是小板
-            x_offset = width * 0.31;
-            y_offset_up = height * 0.35;
+            x_offset = width * 0.3;
+            y_offset_up = height * 0.25;
             y_offset_down = height * 0.32;
         }
         if (detect_success >= 8) { //最后两个水果是小板
-            x_offset = width * 0.37;
-            y_offset_up = height * 0.4;
-            y_offset_down = height * 0.35;
+            x_offset = width * 0.35;
+            y_offset_up = height * 0.3;
+            y_offset_down = height * 0.4;
         }
         Rect roi(x_offset, y_offset_up, frame.cols - 2 * x_offset, frame.rows - y_offset_up - y_offset_down);
         Mat cropped_frame = frame(roi);
         rectangle(frame, roi, Scalar(0, 255, 0), 2);
         float confidence = 0.0;
         std::string save_path = "/home/ucar/record_pic/";
-//        cv::resize(cropped_frame, cropped_frame, cv::Size(224, 224));
+//        cv::resize(cropped_frame, cropped_frame, cv::Size(256, 256));
         cvtColor(cropped_frame, cropped_frame, COLOR_BGR2RGB);
 
         cudaMemcpy2D((void *) imgBufferRGB, (width - 2 * x_offset) * sizeof(uchar3),
                      (void *) cropped_frame.data, cropped_frame.step,
                      (width - 2 * x_offset) * sizeof(uchar3),
                      (height - y_offset_up - y_offset_down), cudaMemcpyHostToDevice);
-//        cudaMemcpy2D((void *) imgBufferRGB, (224) * sizeof(uchar3),
+//        cudaMemcpy2D((void *) imgBufferRGB, (256) * sizeof(uchar3),
 //                     (void *) cropped_frame.data, cropped_frame.step,
-//                     (224) * sizeof(uchar3),
-//                     (224), cudaMemcpyHostToDevice);
+//                     (256) * sizeof(uchar3),
+//                     (256), cudaMemcpyHostToDevice);
 
         int classIndex = 0;
         if (detect_success < 4)
             classIndex = net_1->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down), &confidence);
+//           classIndex = net_1->Classify(imgBufferRGB, 256, 256, &confidence);
         else
             classIndex = net_2->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down), &confidence);
+//          classIndex = net_2->Classify(imgBufferRGB, 256, 256, &confidence);
 
 
-        float confthred = 0.6;
-        if (detect_success >= 4)
-            confthred = 0.5;
+        float confthred = 0.4;
+        int timethres = 1;
+        if (detect_success >= 4) {
+            confthred = 0.35;
+            timethres = 2;
+        }
         if (confidence > confthred) {
             detect_timer++;
             if (classIndex != last_classIndex) {
@@ -221,8 +226,8 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
 
                 cv::imwrite(full_path_2, frame);
 
-                if (detect_timer >= 2) {
-                    float average_confidence = confidence_sum / 2.0;
+                if (detect_timer >= timethres) {
+                    float average_confidence = confidence_sum / float(timethres);
                     DetectionResult result;
                     result.classIndex = classIndex;
                     result.average_confidence = average_confidence;

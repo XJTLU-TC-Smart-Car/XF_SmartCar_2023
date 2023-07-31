@@ -31,27 +31,26 @@ public:
 
         // Initialize the locations.
         locations = {
+                //{{0.251,5.091,  0.700, 0.714},  false},//B  down植被固定点，第一次识别结束
+                {{0.6625,4.6685,0.561, 0.828},  true},//B down植被固定点
+                {{-0.359, 2.494,-0.697, 0.717},  false},
+                {{0.421, -0.015, -0.172, 0.985},  true},//C down植被固定点
+                //{{1.972,  4.710,  0.333,  0.943},  false},//D 植被固定点，第三次识别结束
+                {{2.037, 4.797, 0.560, 0.828}, true},//D 植被固定点
 
-
-                {{0.251,5.191,  0.700, 0.714},  false},//B  down植被固定点，第一次识别结束
-                {{0.251,5.191,0.018,1.000},  true},//B down植被固定点
-                //{{0.678, 0.304,  -0.207, 0.978},  false},//C down植被固定点，第二次识别结束
-                {{0.251,-0.309,1.000,-0.004},  true},//C down植被固定点
-                //{{1.972, 4.710,  0.943,  0.333},  false},//D 植被固定点
-                {{1.951, 5.191,1.000, -0.004},  true},//D 植被固定点，第三次识别结束
-               
-                {{1.400, 0.388, -0.743, 0.669}, true},//E 植被固定点
+                {{1.748, 0.145, -0.812, 0.583}, true},//E 植被固定点
 
 
                 {{3.930, 0.113,  0.707,  0.707},  false}, // 冲坡去水果区
                 {{3.930, 2.127,  0.707,  0.707},  false}, // 过坡定位
-                {{3.893, 3.322,  1.000,  -0.028}, true},// F1 水果随机板，开始旋转
-                {{3.893, 3.322,  -0.688, 0.725},  false}, // F1 F2 中间点，切换视觉
-                {{3.893, 3.322,  -0.161, 0.987},  true},//F2 水果随机板， 结束旋转
+                {{3.963, 3.537, 0.986, 0.167}, false},
+                {{3.963, 3.537, 0.896, 0.443}, true},// F1 水果随机板，开始旋转
+                {{3.963, 3.537, 0.478, 0.879},  false}, // F1 F2 中间点，切换视觉
+                {{3.963, 3.537, 0.210, 0.978},  true},//F2 水果随机板， 结束旋转
                 //{{3.151, 4.420,  0.912,  0.410},  false}, // F5 水果固定板，开始旋转
-                {{3.151, 4.420,  0.700,  0.714},  true},  // F5 水果固定板，结束旋转
+                {{3.505, 4.761, 0.970, 0.245},  true},  // F5 水果固定板，结束旋转
                 //{{4.705, 4.725,  0.700,  0.714},  false}, // F6 水果固定板，结束旋转
-                {{4.705, 4.725,  0.335,  0.942},  true},  // F6 水果固定板，结束旋转
+                {{4.814, 4.681, 0.643, 0.766},  true},  // F6 水果固定板，结束旋转
 
                 {{3.945, 2.127,  -0.707, 0.707},  false}, //回正点
                 {{3.945, 2.127,  0.970,  -0.243}, true},  // F3 水果随机板，开始旋转
@@ -86,8 +85,9 @@ public:
         for (size_t i = 0; i < locations.size(); ++i) {
             moveToGoal(locations[i].first);
             if (locations[i].second) {
-                startDetectThread(i); // 如果布尔值为 true，则开启线程
-
+                startDetectThread(i);
+                if (i==0)
+                    sleep(2);
             } else {
                 stop_thread_flag = true; // 如果布尔值为 false，则设置标志以停止线程
             }
@@ -113,9 +113,9 @@ public:
                     vel_pub.publish(vel_msg);  // 发布停止命令
                 });
                 t.detach();
-            } else if (i == 15) {
+            } else if (i == 17) {
                 std::thread t([this, i]() {  // 注意这里，我们添加了this
-                    while (i != 16) {
+                    while (i != 18) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(500));
                     }
                     ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -540,7 +540,7 @@ private:
             }
 
         }
-        ros::Duration(5.0).sleep();
+        sleep(5);
         for (auto &file: sound_files_to_play) {
             playSound(file);
             ros::Duration(3.0).sleep(); // 延迟3秒，你可以根据你的音频文件的长度来调整这个值
@@ -548,13 +548,14 @@ private:
         }
 
         ROS_WARN("Finish play Plant sound");
-
+        int classid = 0;
         for (size_t i = 0; i < detection_results_final_fruit.size(); ++i) {
-            if (detection_results_final_fruit[i] == 5)
-                detection_results_final_fruit[i] = 4;
-            if (detection_results_final_fruit[i] == 1)
-                detection_results_final_fruit[i] = 2;
-            int classid = detection_results_final_fruit[i] / 2;
+            if (detection_results_final_fruit[i] == 6)
+                classid = 3;
+            if (detection_results_final_fruit[i] == 1 || detection_results_final_fruit[i] == 2)
+                classid = 1;
+            if (detection_results_final_fruit[i] == 3 || detection_results_final_fruit[i] == 4 || detection_results_final_fruit[i] == 5)
+                classid = 2;
             fruit_num[classid] += fruit_count[detection_results_final_fruit[i]];
         }
         int maxfruit_index = 0, maxfruit = 0;
