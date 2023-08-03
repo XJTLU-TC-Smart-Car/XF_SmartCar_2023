@@ -73,10 +73,10 @@ public:
                                      "Cucumber_1", "Cucumber_2", "Cucumber_3", "Cucumber_4",
                                      "Watermelon_1", "Watermelon_2", "Watermelon_3", "Watermelon_4"};
 
+
     uchar3 *imgBufferRGB = NULL;
     int detect_success = 0;
     bool detect_flag[17] = {0};
-
     struct DetectionResult {
         int classIndex;
         float average_confidence;
@@ -88,8 +88,7 @@ public:
     int x_offset = width * 0.35;
     int y_offset_up = height * 0.4;
     int y_offset_down = height * 0.3;
-
-
+    bool init_sussess = false;
     bool detectCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
     bool parkingCB(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
@@ -140,32 +139,19 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
         inputVideo.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
     }
     while (inputVideo.isOpened() && ros::ok()) {
-
-        dettime_small++;
-        cv::Mat frame, imageCopy, imageFlip;
+        cv::Mat frame;
         inputVideo >> frame;
         flip(frame, frame, 1);
-        imageFlip.copyTo(imageCopy);
-//        if (detect_success >= 0) { //固定板参数,前两块板是大板
-//            x_offset = width *  0.3;
-//            y_offset_up = height * 0.3;
-//            y_offset_down = height * 0.3;
-//        }
+        if (frame.empty()) {
+            ROS_INFO("detectCB: video end.");
+            break;
+        }
+        dettime_small++;
         if (detect_success >= 0) { //移动版参数，前两块板子是小板
             x_offset = width * 0.26;
             y_offset_up = height * 0.24;
             y_offset_down = height * 0.32;
         }
-//        if (detect_success >= 2) { //最后两个植被大识别板
-//            x_offset = width * 0.26;
-//            y_offset_up = height * 0.26;
-//            y_offset_down = height * 0.26;
-//        }
-//        if (detect_success >= 4) { //A点中心是特大板
-//            x_offset = width * 0.13;
-//            y_offset_up = height * 0.13;
-//            y_offset_down = height * 0.13;
-//        }
         if (detect_success >= 6) { //最后两个水果是小板
             x_offset = width * 0.3;
             y_offset_up = height * 0.25;
@@ -181,6 +167,11 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
         rectangle(frame, roi, Scalar(0, 255, 0), 2);
         float confidence = 0.0;
         std::string save_path = "/home/ucar/record_pic/";
+        std::string try1 = std::to_string(dettime_small); //第几个
+        std::string full_path_1 = save_path + "_try_" + try1 + ".jpg";
+        cvtColor(cropped_frame, cropped_frame, COLOR_RGB2BGR);
+
+        cv::imwrite(full_path_1, cropped_frame);
 //        cv::resize(cropped_frame, cropped_frame, cv::Size(256, 256));
         cvtColor(cropped_frame, cropped_frame, COLOR_BGR2RGB);
 
@@ -195,10 +186,10 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
 
         int classIndex = 0;
         if (detect_success < 4)
-            classIndex = net_1->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down), &confidence);
+            classIndex = net_1->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down),&confidence);
 //           classIndex = net_1->Classify(imgBufferRGB, 256, 256, &confidence);
         else
-            classIndex = net_2->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down), &confidence);
+            classIndex = net_2->Classify(imgBufferRGB, (width - 2 * x_offset), (height - y_offset_up - y_offset_down),&confidence);
 //          classIndex = net_2->Classify(imgBufferRGB, 256, 256, &confidence);
 
 
@@ -208,7 +199,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
             confthred = 0.35;
             timethres = 2;
         }
-        if (confidence > confthred) {
+        if (confidence > confthred && classIndex > 0) {
             detect_timer++;
             if (classIndex != last_classIndex) {
                 detect_timer = 0;
@@ -223,9 +214,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                 std::string full_path_2 =
                         save_path + "success_" + success_time + "_detect_" + item_name + "_" + count + ".jpg";
                 cvtColor(cropped_frame, cropped_frame, COLOR_RGB2BGR);
-
                 cv::imwrite(full_path_2, frame);
-
                 if (detect_timer >= timethres) {
                     float average_confidence = confidence_sum / float(timethres);
                     DetectionResult result;
@@ -235,11 +224,16 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                     detect_success++;
                     detect_flag[classIndex] = 1;
                     cout << "average_confidence: " << average_confidence << "detect_success:" << detect_success << endl;
-
                     ROS_INFO("detectCB: get id: %d", classIndex);
                     detect_timer = 0;
                     res.message = std::to_string(classIndex) + "," + std::to_string(average_confidence);
                     res.success = true;
+
+                    if (!init_sussess){
+                        init_sussess = true;
+                        ROS_INFO("detectCB: init success");
+                        detect_success = 0;
+                    }
                     inputVideo.release();
                     return true;
                 }
@@ -247,7 +241,7 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
             }
         } else {
             int classIndex_replace = 0, classbegin = 1, classend = 4;
-            if (dettime_small >= 5) {
+            if (dettime_small >= 10) {
                 if (detect_success < 4)
                     for (int i = classbegin; i <= classend; i++) {
                         auto it = std::find_if(detection_results_tmp.begin(), detection_results_tmp.end(),
@@ -261,6 +255,11 @@ bool ARCodeNode::detectCB(std_srvs::Trigger::Request &req,
                 res.success = true;
                 ROS_INFO("detectCB: Can't detect Marker.Replace with %d", classIndex_replace);
                 res.message = std::to_string(classIndex_replace) + "," + std::to_string(0.1);
+                if (!init_sussess){
+                    init_sussess = true;
+                    ROS_INFO("detectCB: init success");
+                    detect_success = 0;
+                }
                 inputVideo.release();
                 return true;
             }
@@ -403,10 +402,10 @@ bool ARCodeNode::getGoalPose(Eigen::Vector3d &T_goal_in_base, Eigen::Vector3d &A
     }
     while (inputVideo.grab() && ros::ok()) {
         cv::Mat image, imageCopy, imageFlip;
-        inputVideo >> image;//ץȡ��Ƶ�е�һ����Ƭ
+        inputVideo >> image;
         if (image.empty())
             return false;
-        flip(image, imageFlip, 1);//1����ˮƽ������ת180��
+        flip(image, imageFlip, 1);
         imageFlip.copyTo(imageCopy);
         cvtColor(imageCopy, imageCopy, COLOR_BGR2GRAY);
         std::vector<int> ids;

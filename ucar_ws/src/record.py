@@ -3,9 +3,9 @@ import time
 import os
 
 # 设定ROI区域的偏移量
-x_offset = int(640 * 0.25)
-y_offset_up = int(480 * 0.22)
-y_offset_down = int(480 * 0.28)
+x_offset = int(640 * 0.26)
+y_offset_up = int(480 * 0.24)
+y_offset_down = int(480 * 0.32)
 
 # 设定保存地址
 save_path = '/home/ucar/record_vid'

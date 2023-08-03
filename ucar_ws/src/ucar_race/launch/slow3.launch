@@ -1,10 +1,8 @@
 <launch>
-
- <include file="$(find xf_mic_asr_offline)/launch/xf_mic_asr_offline.launch"/>
-
- <include file="$(find ucar_nav)/launch/ucar_navigation.launch"/>
  <include file="$(find ucar_race)/launch/ar_code_server.launch"/>
- <node name="move_node" pkg="ucar_race" type="move_node"/>
+ <include file="$(find xf_mic_asr_offline)/launch/xf_mic_asr_offline.launch"/>
+ <include file="$(find ucar_nav)/launch/slow_nav3.launch"/>
+ <node name="move3slow_node" pkg="ucar_race" type="move3slow_node"/>
  <node name="sound_play" pkg="sound_play" type="soundplay_node.py" />
 <param name="wake_up_words"   type="string" value="开始导航"/>
  

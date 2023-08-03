@@ -15,6 +15,10 @@
 #include <geometry_msgs/Twist.h>
 
 typedef actionlib::SimpleActionClient <move_base_msgs::MoveBaseAction> MoveBaseClient;
+bool chongci = false;
+int chongci_plant[4] = {1, 4, 2, 3};
+int chongci_fruit = 3;
+int chongci_number = 4;
 
 class UcarNav {
 public:
@@ -31,40 +35,37 @@ public:
 
         // Initialize the locations.
         locations = {
-
-                {{-0.310, 4.769,  0.556,  0.831},  false},//B 植被固定点
-                {{-0.310, 4.769,  0.968,  0.250},  true},//B  植被固定点，第一次识别结束
-                {{-0.320, 0.269,  -0.702, 0.712},  false},//C 植被固定点
-                {{-0.320, 0.269,  0.995,  -0.095}, true},//C 植被固定点，第二次识别结束
-                {{1.972,  4.710,  0.943,  0.333},  false},//D 植被固定点
-                {{1.972,  4.710,  0.333,  0.943},  true},//D 植被固定点，第三次识别结束
-                {{1.710,  0.120,  1.000,  -0.020}, false},//E 植被固定点
-                {{1.710,  0.120,  -0.770, 0.638},  true},//E 植被固定点，第四次识别结束
-
-
+                //植被开始
+                {{0.6625, 4.6685, 0.577,  0.817},  true},// B2 植被固定点
+                {{0.6625, 4.6685, -0.797, 0.604},  false}, // 掉头（只有这一版用)
+                {{-0.359, 2.494,  -0.697, 0.717},  false}, // BC中间点
+                {{0.634,  -0.020, -0.564, 0.826},  true},// C down植被固定点
+                {{1.735,  4.731,  0.822,  0.569},  true},//D 植被固定点
+                {{1.748,  0.145,  -0.812, 0.583},  true},//E2 植被固定点
+                //植被结束，进入水果
                 {{3.930,  0.113,  0.707,  0.707},  false}, // 冲坡去水果区
                 {{3.930,  2.127,  0.707,  0.707},  false}, // 过坡定位
-                {{3.912,  3.322,  1.000,  0.025},  true},// F1 水果随机板，开始旋转
-                {{3.912,  3.322,  0.916,  0.402},  false}, // F1 F2 中间点，切换视觉
-                {{3.912,  3.322,  0.284,  0.959},  true},//F2 水果随机板， 结束旋转
 
-                {{3.151,  4.420,  0.912,  0.410},  false}, // F5 水果固定板，开始旋转
-                {{3.151,  4.420,  0.700,  0.714},  true},  // F5 水果固定板，结束旋转
-                {{4.705,  4.725,  0.700,  0.714},  false}, // F6 水果固定板，结束旋转
-                {{4.705,  4.725,  0.335,  0.942},  true},  // F6 水果固定板，结束旋转
+                {{3.963,  3.537,  0.986,  0.167},  false}, //前往八卦阵
+                {{3.963,  3.537,  0.896,  0.443},  true}, // 八卦水果随机板，开始旋转
+                {{3.963,  3.537,  0.478,  0.879},  false}, // 八卦中间点，切换视觉
+                {{3.963,  3.537,  0.210,  0.978},  true}, // 八卦水果随机板， 结束旋转
 
-                {{3.945,  2.127,  -0.707, 0.707},  false}, //回正点
-                {{3.945,  2.127,  0.970,  -0.243}, true},  // F3 水果随机板，开始旋转
-                {{3.945,  2.127,  -0.707, 0.707},  false}, // F3 F4 中间点，切换视觉
-                {{3.945,  2.127,  -0.285, 0.958},  true},  // F4 水果随机板，开始旋转
-                {{3.945,  2.127,  -0.707, 0.707},  false}, // 结束旋转，冲破
+                {{3.202,  4.540,  0.775,  0.632},  true}, // F1固定板
+                {{3.945,  2.127,  -0.707, 0.707},  false}, // 回正点，准备识别BC
+                {{3.945,  2.127,  -0.399, 0.917},  true}, // B区域水果随机板，开始旋转
+                {{3.945,  2.127,  -0.707, 0.707},  false}, // 中间点，切换视觉
+                {{3.945,  2.127,  0.917,  -0.399}, true}, // C区域水果随机板，开始旋转
+                {{3.945,  2.127,  -0.707, 0.707},  false}, // 回来冲破点
                 {{3.945,  0.113,  -0.000, 1.000},  false}, // 过破
-                {{4.900,  -0.320, -0.000, 1.000},  false} // 终点
+                {{4.950,  -0.350, -0.000, 1.000},  false} // 终点
         };
+
         qr_sub = nh.subscribe("/qr_res", 1, &UcarNav::qrCallback, this);
         set_wake_words_client_ = nh_.serviceClient<xf_mic_asr_offline::Set_Awake_Word_srv>(
                 "/xf_asr_offline_node/set_awake_word_srv");
         wake_up_sub_ = nh_.subscribe("/mic/awake/angle", 10, &UcarNav::wakeUpCallback, this);
+
         setWakeWords();
     }
 
@@ -77,6 +78,7 @@ public:
             ros::spinOnce();
             loop_rate.sleep();
         }
+        startDetectThread(-1);
         ROS_WARN("Start the game!");
 
         while (!ac->waitForServer(ros::Duration(5.0))) {
@@ -86,16 +88,15 @@ public:
         for (size_t i = 0; i < locations.size(); ++i) {
             moveToGoal(locations[i].first);
             if (locations[i].second) {
-                startDetectThread(i); // 如果布尔值为 true，则开启线程
-
+                startDetectThread(i);
             } else {
                 stop_thread_flag = true; // 如果布尔值为 false，则设置标志以停止线程
             }
             if (arrive == 0)
                 break;
-            if (i == 8) {
+            if (i == 5) {
                 std::thread t([this, i]() {  // 注意这里，我们添加了this
-                    while (i != 9) {
+                    while (i != 6) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(500));
                     }
                     ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -113,9 +114,9 @@ public:
                     vel_pub.publish(vel_msg);  // 发布停止命令
                 });
                 t.detach();
-            } else if (i == 21) {
+            } else if (i == 16) {
                 std::thread t([this, i]() {  // 注意这里，我们添加了this
-                    while (i != 22) {
+                    while (i != 17) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(500));
                     }
                     ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -349,6 +350,10 @@ private:
                 if (ros::ok()) {
                     try {
                         code_detect_client_.call(detect_srv);
+                        if (location_i > 25) {
+                            ROS_WARN("Detection Init Success. Results: %s", detect_srv.response.message.c_str());
+                            continue;
+                        }
                         if (detect_srv.response.success == true) {
                             ROS_WARN("Detection success. Results: %s", detect_srv.response.message.c_str());
                             std::stringstream ss(detect_srv.response.message);
@@ -404,15 +409,8 @@ private:
 
     void processResults_Fruit(std::vector <DetectionResult> &detection_results,
                               std::vector<int> &detection_results_final) {
-
-        std::map<int, int> classIndexCounts;
-        for (const auto &result: detection_results) {
+        for (auto &result: detection_results)
             ROS_WARN("Fruit_classIndex: %d", result.classIndex);
-            classIndexCounts[result.classIndex]++;
-        }
-
-
-        // 第三步
         for (const auto &result: detection_results) {
             detection_results_final.push_back(result.classIndex);
         }
@@ -425,17 +423,8 @@ private:
         int classbegin = 1;
         int classend = 4;
 
-        for (auto &result: detection_results) {
+        for (auto &result: detection_results)
             ROS_WARN("Plant_classIndex: %d", result.classIndex);
-            if (result.classIndex > 12) {
-                result.classIndex = 1;
-                result.average_confidence = 0.0;
-            }
-            if (result.classIndex > 4) {
-                result.classIndex = (result.classIndex - 1) / 4;
-                result.average_confidence = result.average_confidence / 2;
-            }
-        }
         for (int i = classbegin; i <= classend; i++) {
             if (!isClassIndexPresent(i, detection_results)) {
                 allPresent = false;
@@ -556,27 +545,37 @@ private:
             }
 
         }
-        ros::Duration(5.0).sleep();
-        // 播放音频文件
-        for (size_t i = 0; i < detection_results_final_plant.size(); ++i)
+        sleep(5);
+        for (auto &file: sound_files_to_play) {
+            playSound(file);
             ros::Duration(3.0).sleep(); // 延迟3秒，你可以根据你的音频文件的长度来调整这个值
 
         }
 
         ROS_WARN("Finish play Plant sound");
-
-        for (size_t i = 0; i < detection_results_final_fruit.size(); ++i) {
-            if (detection_results_final_fruit[i] == 5)
-                detection_results_final_fruit[i] = 4;
-            int classid = detection_results_final_fruit[i] / 2;
-            fruit_num[classid] += fruit_count[detection_results_final_fruit[i]];
-        }
+        int classid = 0;
         int maxfruit_index = 0, maxfruit = 0;
-        for (int i = 1; i <= 3; i++) {
-            if (fruit_num[i] > maxfruit) {
-                maxfruit = fruit_num[i];
-                maxfruit_index = i;
+        if (!chongci) {
+            for (size_t i = 0; i < detection_results_final_fruit.size(); ++i) {
+                if (detection_results_final_fruit[i] == 6)
+                    classid = 3;
+                if (detection_results_final_fruit[i] == 1 || detection_results_final_fruit[i] == 2)
+                    classid = 1;
+                if (detection_results_final_fruit[i] == 3 || detection_results_final_fruit[i] == 4 ||
+                    detection_results_final_fruit[i] == 5)
+                    classid = 2;
+                fruit_num[classid] += fruit_count[detection_results_final_fruit[i]];
             }
+
+            for (int i = 1; i <= 3; i++) {
+                if (fruit_num[i] > maxfruit) {
+                    maxfruit = fruit_num[i];
+                    maxfruit_index = i;
+                }
+            }
+        } else {
+            maxfruit_index = 2;
+            maxfruit = 5;
         }
         ROS_WARN("maxfruit_index: %d,maxfruit_num: %d", maxfruit_index, maxfruit);
         playFruitSound(maxfruit_index, maxfruit);

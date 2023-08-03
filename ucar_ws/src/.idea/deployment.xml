@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="ucar208 (ef99d8eb-435e-4889-bf98-52c379af549d)" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
     <option name="confirmBeforeUploading" value="false" />
     <serverData>
-      <paths name="ucar (b518fc77-54f1-455f-bbba-18345ca22b2a)">
+      <paths name="ucar208 (ef99d8eb-435e-4889-bf98-52c379af549d)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ucar/ucar_ws/src" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="ucar209 (b518fc77-54f1-455f-bbba-18345ca22b2a)">
         <serverdata>
           <mappings>
             <mapping deploy="/home/ucar/ucar_ws/src" local="$PROJECT_DIR$" />
@@ -22,5 +29,6 @@
         </serverdata>
       </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

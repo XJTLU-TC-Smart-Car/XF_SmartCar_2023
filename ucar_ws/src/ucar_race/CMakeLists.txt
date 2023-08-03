@@ -45,7 +45,7 @@ include_directories(
 link_directories(/usr/lib/aarch64-linux-gnu/tegra)
 # # ucar_race
 add_executable(ucar_race src/ucar_race.cpp)
-target_link_libraries(ucar_race ${catkin_LIBRARIES})#
+target_link_libraries(ucar_race ${catkin_LIBRARIES})
 add_executable(wav_node src/wav.cpp)
 target_link_libraries(wav_node ${catkin_LIBRARIES})
 
@@ -58,6 +58,24 @@ target_link_libraries(daohang_node ${catkin_LIBRARIES})
 add_executable(music_node src/music.cpp)
 target_link_libraries(music_node ${catkin_LIBRARIES})
 
+add_executable(move1quick_node src/move1_quick.cpp)
+target_link_libraries(move1quick_node ${catkin_LIBRARIES})
+
+add_executable(move2quick_node src/move2_quick.cpp)
+target_link_libraries(move2quick_node ${catkin_LIBRARIES})
+
+add_executable(move3quick_node src/move3_quick.cpp)
+target_link_libraries(move3quick_node ${catkin_LIBRARIES})
+
+
+add_executable(move1slow_node src/move1_slow.cpp)
+target_link_libraries(move1slow_node ${catkin_LIBRARIES})
+
+add_executable(move2slow_node src/move2_slow.cpp)
+target_link_libraries(move2slow_node ${catkin_LIBRARIES})
+
+add_executable(move3slow_node src/move3_slow.cpp)
+target_link_libraries(move3slow_node ${catkin_LIBRARIES})
 
 # # approach_server
 add_executable(ar_code_server src/ar_code_server.cpp)
